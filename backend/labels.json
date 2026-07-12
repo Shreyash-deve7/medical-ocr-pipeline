@@ -1,0 +1,374 @@
+{
+  "Patient_Kastoor\\20260612_110735.jpg": {
+    "true_class": "PRINTED_TEXT",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\20260612_110747.jpg": {
+    "true_class": "PRINTED_TEXT",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\20260612_110922.jpg": {
+    "true_class": "PRINTED_TEXT",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\20260612_110926.jpg": {
+    "true_class": "PRINTED_TEXT",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\20260612_110943.jpg": {
+    "true_class": "PRINTED_TEXT",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\20260612_111338.jpg": {
+    "true_class": "PRINTED_TEXT",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\20260612_111355.jpg": {
+    "true_class": "PRINTED_TEXT",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\booklet\\20260612_111355.jpg": {
+    "true_class": "PRINTED_TEXT",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\booklet\\IMG_3900.jpeg": {
+    "true_class": "PRINTED_TEXT",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\booklet\\IMG_3901.jpeg": {
+    "true_class": "PRINTED_TEXT",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\booklet\\IMG_3902.jpeg": {
+    "true_class": "PRINTED_TEXT",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\booklet\\IMG_3903.jpeg": {
+    "true_class": "PRINTED_TEXT",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\booklet\\IMG_3904.jpeg": {
+    "true_class": "PRINTED_TEXT",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\booklet\\IMG_3905.jpeg": {
+    "true_class": "PRINTED_TEXT",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\IMG_3900.jpeg": {
+    "true_class": "PRINTED_TEXT",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\IMG_3901.jpeg": {
+    "true_class": "PRINTED_TEXT",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\IMG_3902.jpeg": {
+    "true_class": "PRINTED_TEXT",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\IMG_3903.jpeg": {
+    "true_class": "PRINTED_TEXT",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\IMG_3904.jpeg": {
+    "true_class": "PRINTED_TEXT",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\IMG_3905.jpeg": {
+    "true_class": "PRINTED_TEXT",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\IMG_3906.jpeg": {
+    "true_class": "PRINTED_TEXT",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\IMG_3907.jpeg": {
+    "true_class": "PRINTED_TEXT",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\IMG_3913.jpeg": {
+    "true_class": "PRINTED_TEXT",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\IMG_3914.jpeg": {
+    "true_class": "PRINTED_TEXT",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\IMG_3917.jpeg": {
+    "true_class": "PRINTED_TEXT",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\IMG_3918.jpeg": {
+    "true_class": "PRINTED_TEXT",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\IMG_3922.jpeg": {
+    "true_class": "HANDWRITTEN",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\Lab_Report\\20260612_110755.jpg": {
+    "true_class": "TABLE",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\Lab_Report\\20260612_110800.jpg": {
+    "true_class": "TABLE",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\Lab_Report\\20260612_110810.jpg": {
+    "true_class": "TABLE",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\Lab_Report\\20260612_110816.jpg": {
+    "true_class": "TABLE",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\Lab_Report\\20260612_110823.jpg": {
+    "true_class": "TABLE",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\Lab_Report\\20260612_110838.jpg": {
+    "true_class": "TABLE",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\Lab_Report\\20260612_110850.jpg": {
+    "true_class": "TABLE",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\Lab_Report\\20260612_110858.jpg": {
+    "true_class": "TABLE",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\Lab_Report\\20260612_110904.jpg": {
+    "true_class": "TABLE",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\Lab_Report\\20260612_110910.jpg": {
+    "true_class": "TABLE",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\Lab_Report\\20260612_110946.jpg": {
+    "true_class": "TABLE",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\Lab_Report\\20260612_111003.jpg": {
+    "true_class": "TABLE",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\Lab_Report\\20260612_111010.jpg": {
+    "true_class": "TABLE",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\Lab_Report\\20260612_111029.jpg": {
+    "true_class": "TABLE",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\Lab_Report\\20260612_111044.jpg": {
+    "true_class": "TABLE",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\Lab_Report\\20260612_111051.jpg": {
+    "true_class": "TABLE",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\Lab_Report\\20260612_111113.jpg": {
+    "true_class": "TABLE",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\Lab_Report\\20260612_111123.jpg": {
+    "true_class": "TABLE",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\Lab_Report\\20260612_111129.jpg": {
+    "true_class": "TABLE",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\Lab_Report\\20260612_111137.jpg": {
+    "true_class": "TABLE",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\Lab_Report\\20260612_111151.jpg": {
+    "true_class": "TABLE",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\Lab_Report\\20260612_111206.jpg": {
+    "true_class": "TABLE",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\Lab_Report\\20260612_111216.jpg": {
+    "true_class": "TABLE",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\Lab_Report\\20260612_111236.jpg": {
+    "true_class": "TABLE",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\Lab_Report\\20260612_111244.jpg": {
+    "true_class": "TABLE",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\Lab_Report\\20260612_111251.jpg": {
+    "true_class": "TABLE",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\Lab_Report\\20260612_111257.jpg": {
+    "true_class": "TABLE",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\Lab_Report\\IMG_3908.jpeg": {
+    "true_class": "TABLE",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\Lab_Report\\IMG_3909.jpeg": {
+    "true_class": "TABLE",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\Lab_Report\\IMG_3910.jpeg": {
+    "true_class": "TABLE",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\Lab_Report\\IMG_3911.jpeg": {
+    "true_class": "TABLE",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\Lab_Report\\IMG_3912.jpeg": {
+    "true_class": "TABLE",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\Lab_Report\\IMG_3915.jpeg": {
+    "true_class": "TABLE",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\Lab_Report\\IMG_3916.jpeg": {
+    "true_class": "TABLE",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\Lab_Report\\IMG_3919.jpeg": {
+    "true_class": "TABLE",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\Lab_Report\\IMG_3920.jpeg": {
+    "true_class": "TABLE",
+    "source": "patient_kastoor_manual"
+  },
+  "Patient_Kastoor\\Lab_Report\\IMG_3921.jpeg": {
+    "true_class": "TABLE",
+    "source": "patient_kastoor_manual"
+  },
+  "WhatsApp.Unknown.2026-04-27.at.12.10.10\\WhatsApp Unknown 2026-04-27 at 12.10.10\\discharge_summary_case_booklet_01.jpeg": {
+    "true_class": "PRINTED_TEXT",
+    "source": "whatsapp_filename"
+  },
+  "WhatsApp.Unknown.2026-04-27.at.12.10.10\\WhatsApp Unknown 2026-04-27 at 12.10.10\\discharge_summary_case_summary_01.jpeg": {
+    "true_class": "PRINTED_TEXT",
+    "source": "whatsapp_filename"
+  },
+  "WhatsApp.Unknown.2026-04-27.at.12.10.10\\WhatsApp Unknown 2026-04-27 at 12.10.10\\handwritten_prescription_01.jpeg": {
+    "true_class": "HANDWRITTEN",
+    "source": "whatsapp_filename"
+  },
+  "WhatsApp.Unknown.2026-04-27.at.12.10.10\\WhatsApp Unknown 2026-04-27 at 12.10.10\\handwritten_prescription_02.jpeg": {
+    "true_class": "HANDWRITTEN",
+    "source": "whatsapp_filename"
+  },
+  "WhatsApp.Unknown.2026-04-27.at.12.10.10\\WhatsApp Unknown 2026-04-27 at 12.10.10\\handwritten_prescription_03.jpeg": {
+    "true_class": "HANDWRITTEN",
+    "source": "whatsapp_filename"
+  },
+  "WhatsApp.Unknown.2026-04-27.at.12.10.10\\WhatsApp Unknown 2026-04-27 at 12.10.10\\handwritten_prescription_04.jpeg": {
+    "true_class": "HANDWRITTEN",
+    "source": "whatsapp_filename"
+  },
+  "WhatsApp.Unknown.2026-04-27.at.12.10.10\\WhatsApp Unknown 2026-04-27 at 12.10.10\\handwritten_prescription_05.jpeg": {
+    "true_class": "HANDWRITTEN",
+    "source": "whatsapp_filename"
+  },
+  "WhatsApp.Unknown.2026-04-27.at.12.10.10\\WhatsApp Unknown 2026-04-27 at 12.10.10\\handwritten_prescription_06.jpeg": {
+    "true_class": "HANDWRITTEN",
+    "source": "whatsapp_filename"
+  },
+  "WhatsApp.Unknown.2026-04-27.at.12.10.10\\WhatsApp Unknown 2026-04-27 at 12.10.10\\handwritten_prescription_opd_01.jpeg": {
+    "true_class": "HANDWRITTEN",
+    "source": "whatsapp_filename"
+  },
+  "WhatsApp.Unknown.2026-04-27.at.12.10.10\\WhatsApp Unknown 2026-04-27 at 12.10.10\\handwritten_prescription_opd_02.jpeg": {
+    "true_class": "HANDWRITTEN",
+    "source": "whatsapp_filename"
+  },
+  "WhatsApp.Unknown.2026-04-27.at.12.10.10\\WhatsApp Unknown 2026-04-27 at 12.10.10\\lab_report_01.jpeg": {
+    "true_class": "TABLE",
+    "source": "whatsapp_filename"
+  },
+  "WhatsApp.Unknown.2026-04-27.at.12.10.10\\WhatsApp Unknown 2026-04-27 at 12.10.10\\lab_report_02.jpeg": {
+    "true_class": "TABLE",
+    "source": "whatsapp_filename"
+  },
+  "WhatsApp.Unknown.2026-04-27.at.12.10.10\\WhatsApp Unknown 2026-04-27 at 12.10.10\\lab_report_03.jpeg": {
+    "true_class": "TABLE",
+    "source": "whatsapp_filename"
+  },
+  "WhatsApp.Unknown.2026-04-27.at.12.10.10\\WhatsApp Unknown 2026-04-27 at 12.10.10\\lab_report_04.jpeg": {
+    "true_class": "TABLE",
+    "source": "whatsapp_filename"
+  },
+  "WhatsApp.Unknown.2026-04-27.at.12.10.10\\WhatsApp Unknown 2026-04-27 at 12.10.10\\lab_report_biochemistry_01.jpeg": {
+    "true_class": "TABLE",
+    "source": "whatsapp_filename"
+  },
+  "WhatsApp.Unknown.2026-04-27.at.12.10.10\\WhatsApp Unknown 2026-04-27 at 12.10.10\\lab_report_blood_test_01.jpeg": {
+    "true_class": "TABLE",
+    "source": "whatsapp_filename"
+  },
+  "WhatsApp.Unknown.2026-04-27.at.12.10.10\\WhatsApp Unknown 2026-04-27 at 12.10.10\\lab_report_hiv_serology_01.jpeg": {
+    "true_class": "TABLE",
+    "source": "whatsapp_filename"
+  },
+  "WhatsApp.Unknown.2026-04-27.at.12.10.10\\WhatsApp Unknown 2026-04-27 at 12.10.10\\other_blank_01.jpeg": {
+    "true_class": "PRINTED_TEXT",
+    "source": "whatsapp_filename"
+  },
+  "WhatsApp.Unknown.2026-04-27.at.12.10.10\\WhatsApp Unknown 2026-04-27 at 12.10.10\\other_blank_02.jpeg": {
+    "true_class": "PRINTED_TEXT",
+    "source": "whatsapp_filename"
+  },
+  "WhatsApp.Unknown.2026-04-27.at.12.10.10\\WhatsApp Unknown 2026-04-27 at 12.10.10\\ultrasound_images_kidney_01.jpeg": {
+    "true_class": "PRINTED_TEXT",
+    "source": "whatsapp_filename"
+  },
+  "WhatsApp.Unknown.2026-04-27.at.12.10.10\\WhatsApp Unknown 2026-04-27 at 12.10.10\\ultrasound_images_kidney_02.jpeg": {
+    "true_class": "PRINTED_TEXT",
+    "source": "whatsapp_filename"
+  },
+  "WhatsApp.Unknown.2026-04-27.at.12.10.10\\WhatsApp Unknown 2026-04-27 at 12.10.10\\ultrasound_images_kidney_03.jpeg": {
+    "true_class": "PRINTED_TEXT",
+    "source": "whatsapp_filename"
+  },
+  "WhatsApp.Unknown.2026-04-27.at.12.10.10\\WhatsApp Unknown 2026-04-27 at 12.10.10\\ultrasound_images_kidney_04.jpeg": {
+    "true_class": "PRINTED_TEXT",
+    "source": "whatsapp_filename"
+  },
+  "WhatsApp.Unknown.2026-04-27.at.12.10.10\\WhatsApp Unknown 2026-04-27 at 12.10.10\\ultrasound_images_kidney_05.jpeg": {
+    "true_class": "PRINTED_TEXT",
+    "source": "whatsapp_filename"
+  },
+  "WhatsApp.Unknown.2026-04-27.at.12.10.10\\WhatsApp Unknown 2026-04-27 at 12.10.10\\ultrasound_images_kidney_06.jpeg": {
+    "true_class": "PRINTED_TEXT",
+    "source": "whatsapp_filename"
+  },
+  "WhatsApp.Unknown.2026-04-27.at.12.10.10\\WhatsApp Unknown 2026-04-27 at 12.10.10\\ultrasound_images_kidney_07.jpeg": {
+    "true_class": "PRINTED_TEXT",
+    "source": "whatsapp_filename"
+  },
+  "WhatsApp.Unknown.2026-04-27.at.12.10.10\\WhatsApp Unknown 2026-04-27 at 12.10.10\\ultrasound_images_kidney_08.jpeg": {
+    "true_class": "PRINTED_TEXT",
+    "source": "whatsapp_filename"
+  },
+  "WhatsApp.Unknown.2026-04-27.at.12.10.10\\WhatsApp Unknown 2026-04-27 at 12.10.10\\ultrasound_images_kidney_09.jpeg": {
+    "true_class": "PRINTED_TEXT",
+    "source": "whatsapp_filename"
+  },
+  "WhatsApp.Unknown.2026-04-27.at.12.10.10\\WhatsApp Unknown 2026-04-27 at 12.10.10\\ultrasound_report_abdomen_01.jpeg": {
+    "true_class": "PRINTED_TEXT",
+    "source": "whatsapp_filename"
+  }
+}

@@ -11,10 +11,8 @@ interface Props {
 
 type Tab =
   | "upload"
-  | "engines"
   | "pipeline"
   | "results"
-  | "compare"
   | "templates"
   | "export";
 
@@ -62,10 +60,8 @@ interface WordResult {
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "upload", label: "Upload" },
-  { key: "engines", label: "Engines" },
   { key: "pipeline", label: "Pipeline" },
   { key: "results", label: "Results" },
-  { key: "compare", label: "Compare" },
   { key: "templates", label: "Templates" },
   { key: "export", label: "Export" },
 ];
@@ -79,13 +75,9 @@ const MOCK_FILES: MockFile[] = [
 ];
 
 const ENGINES: OCREngine[] = [
-  { id: "tesseract", name: "Tesseract", accuracy: 87, languages: ["en", "de", "fr", "es", "zh", "ja"], capabilities: ["Open-source", "CLI", "Multi-script"] },
-  { id: "easyocr", name: "EasyOCR", accuracy: 89, languages: ["en", "zh", "ko", "ja", "th", "ar"], capabilities: ["GPU accel", "80+ langs", "Python native"] },
-  { id: "paddleocr", name: "PaddleOCR", accuracy: 91, languages: ["en", "zh", "ja", "ko", "de", "fr"], capabilities: ["Table recognition", "Layout analysis", "Lightweight"] },
-  { id: "google", name: "Google Vision", accuracy: 95, languages: ["200+ langs"], capabilities: ["Cloud API", "Handwriting", "Document AI"] },
-  { id: "textract", name: "AWS Textract", accuracy: 94, languages: ["en", "es", "de", "fr", "it", "pt"], capabilities: ["Forms", "Tables", "Queries"] },
-  { id: "azure", name: "Azure AI", accuracy: 94, languages: ["160+ langs"], capabilities: ["Prebuilt models", "Custom models", "Layout"] },
-  { id: "custom", name: "Custom HTTP", accuracy: 0, languages: ["Configurable"], capabilities: ["Any endpoint", "Custom auth", "Flexible"] },
+  { id: "paddleocr", name: "PaddleOCR", accuracy: 91, languages: ["en", "zh", "ja", "ko", "de", "fr"], capabilities: ["Table recognition", "Layout analysis", "Lightweight", "Printed (GPU)"] },
+  { id: "qwen_vl", name: "Qwen2.5-VL", accuracy: 93, languages: ["Multimodal"], capabilities: ["Handwritten", "Vision-Language", "GPU"] },
+  { id: "pipeline", name: "MedVault Dual Pipeline", accuracy: 0, languages: ["Auto"], capabilities: ["Printed→PaddleOCR", "Handwritten→Qwen-VL", "Document classifier"] },
 ];
 
 const INITIAL_PIPELINE: PipelineStep[] = [
@@ -182,14 +174,12 @@ function accuracyBadge(a: number) {
 
 export function OCRWorkbench({ onBack, notify }: Props) {
   const [tab, setTab] = useState<Tab>("upload");
-  const [selectedEngine, setSelectedEngine] = useState("tesseract");
-  const [compareEngines, setCompareEngines] = useState<[string, string]>(["tesseract", "google"]);
   const [pipeline, setPipeline] = useState<PipelineStep[]>(INITIAL_PIPELINE);
   const [activeTemplate, setActiveTemplate] = useState<string | null>(null);
 
   const toggleStep = (id: string) => {
     setPipeline((prev) =>
-      prev.map((s) => (s.id === id && s.id !== "ocr" ? { ...s, enabled: !s.enabled } : s))
+      prev.map((s) => (s.id === id ? { ...s, enabled: !s.enabled } : s))
     );
   };
 
@@ -231,31 +221,48 @@ export function OCRWorkbench({ onBack, notify }: Props) {
   );
 
   const renderEngines = () => (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 14 }}>
-      {ENGINES.map((e) => {
-        const badge = accuracyBadge(e.accuracy);
-        const selected = e.id === selectedEngine;
-        return (
-          <div
-            key={e.id}
-            className="neu"
-            style={{ padding: 16, cursor: "pointer", outline: selected ? "2px solid #3b82f6" : "none", borderRadius: 10 }}
-            onClick={() => { setSelectedEngine(e.id); notify(`Selected ${e.name}`, "success"); }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <span style={{ fontWeight: 600 }}>{Icon.engine} {e.name}</span>
-              <span style={{ fontSize: 12, fontWeight: 700, color: badge.color, padding: "2px 8px", borderRadius: 6, background: `${badge.color}22` }}>{badge.label}</span>
-            </div>
-            <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>Languages: {e.languages.join(", ")}</div>
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-              {e.capabilities.map((c) => (
-                <span key={c} style={{ fontSize: 11, padding: "2px 7px", borderRadius: 4, background: "var(--neu-bg, #e8e8e8)" }}>{c}</span>
-              ))}
-            </div>
-            {selected && <div style={{ marginTop: 8, color: "#3b82f6", fontSize: 12, fontWeight: 600 }}>{Icon.check} Active</div>}
+    <div>
+      <div className="neu" style={{ padding: 20, textAlign: "center", marginBottom: 16 }}>
+        <h4 className="section-header" style={{ marginTop: 0 }}>MedVault OCR Pipeline</h4>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, flexWrap: "wrap", marginTop: 16 }}>
+          <div className="neu" style={{ padding: "12px 20px", borderRadius: 8, background: "#dbeafe" }}>
+            <div style={{ fontWeight: 600, fontSize: 14 }}>Document Classifier</div>
+            <div style={{ fontSize: 11, opacity: 0.6 }}>MobileNetV3</div>
           </div>
-        );
-      })}
+          <span style={{ fontSize: 20, opacity: 0.4 }}>→</span>
+          <div className="neu" style={{ padding: "12px 20px", borderRadius: 8, borderLeft: "4px solid #22c55e" }}>
+            <div style={{ fontWeight: 600, fontSize: 14 }}>Printed → PaddleOCR</div>
+            <div style={{ fontSize: 11, opacity: 0.6 }}>GPU · Table/ Layout aware</div>
+          </div>
+          <span style={{ fontSize: 14, opacity: 0.3 }}>OR</span>
+          <div className="neu" style={{ padding: "12px 20px", borderRadius: 8, borderLeft: "4px solid #a78bfa" }}>
+            <div style={{ fontWeight: 600, fontSize: 14 }}>Handwritten → Qwen2.5-VL</div>
+            <div style={{ fontSize: 11, opacity: 0.6 }}>3B · 4-bit GPU · Vision-Language</div>
+          </div>
+        </div>
+        <div style={{ fontSize: 12, opacity: 0.5, marginTop: 16 }}>
+          Auto-detection via document classifier · No manual engine selection needed
+        </div>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 14 }}>
+        {ENGINES.map((e) => {
+          const badge = accuracyBadge(e.accuracy);
+          return (
+            <div key={e.id} className="neu" style={{ padding: 16, borderRadius: 10 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <span style={{ fontWeight: 600 }}>{Icon.engine} {e.name}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: badge.color, padding: "2px 8px", borderRadius: 6, background: `${badge.color}22` }}>{badge.label}</span>
+              </div>
+              <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>Languages: {e.languages.join(", ")}</div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {e.capabilities.map((c) => (
+                  <span key={c} style={{ fontSize: 11, padding: "2px 7px", borderRadius: 4, background: "var(--neu-bg, #e8e8e8)" }}>{c}</span>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 
@@ -328,62 +335,7 @@ export function OCRWorkbench({ onBack, notify }: Props) {
     </div>
   );
 
-  const renderCompare = () => {
-    const eA = ENGINES.find((e) => e.id === compareEngines[0])!;
-    const eB = ENGINES.find((e) => e.id === compareEngines[1])!;
-    return (
-      <div>
-        <div style={{ display: "flex", gap: 12, marginBottom: 16, alignItems: "center", flexWrap: "wrap" }}>
-          <label style={{ fontSize: 13 }}>Engine A:</label>
-          <select className="neu-input" value={compareEngines[0]} onChange={(e) => setCompareEngines([e.target.value, compareEngines[1]])}>
-            {ENGINES.map((en) => <option key={en.id} value={en.id}>{en.name}</option>)}
-          </select>
-          <label style={{ fontSize: 13 }}>Engine B:</label>
-          <select className="neu-input" value={compareEngines[1]} onChange={(e) => setCompareEngines([compareEngines[0], e.target.value])}>
-            {ENGINES.map((en) => <option key={en.id} value={en.id}>{en.name}</option>)}
-          </select>
-          <button className="neu-btn" onClick={() => notify("Comparison started (mock)", "success")}>Run Comparison</button>
-        </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-          {[eA, eB].map((eng) => (
-            <div key={eng.id} className="neu" style={{ padding: 14 }}>
-              <h4 className="section-header" style={{ marginTop: 0 }}>{eng.name}</h4>
-              <div style={{ fontFamily: "monospace", fontSize: 13, lineHeight: 1.8 }}>
-                {MOCK_WORDS.map((w, i) => {
-                  const jitter = eng.id === "google" ? Math.min(w.confidence + 5, 99) : w.confidence;
-                  return (
-                    <span key={i} style={{ background: `${confidenceColor(jitter)}22`, padding: "1px 4px", borderRadius: 3, marginRight: 4 }} title={`${jitter}%`}>
-                      {w.text}
-                    </span>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="neu" style={{ padding: 14, marginTop: 14 }}>
-          <h4 className="section-header" style={{ marginTop: 0 }}>Accuracy Metrics</h4>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, textAlign: "center" }}>
-            {[
-              { label: "Character Accuracy", a: "96.2%", b: "98.1%" },
-              { label: "Word Accuracy", a: "91.4%", b: "95.7%" },
-              { label: "Layout Score", a: "88.0%", b: "93.5%" },
-            ].map((m) => (
-              <div key={m.label} className="neu" style={{ padding: 10 }}>
-                <div style={{ fontSize: 12, opacity: 0.6, marginBottom: 6 }}>{m.label}</div>
-                <div style={{ display: "flex", justifyContent: "space-around" }}>
-                  <span style={{ fontWeight: 600 }}>{eA.name}: {m.a}</span>
-                  <span style={{ fontWeight: 600 }}>{eB.name}: {m.b}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   const renderTemplates = () => (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 14 }}>
@@ -435,10 +387,8 @@ export function OCRWorkbench({ onBack, notify }: Props) {
 
   const RENDERERS: Record<Tab, () => JSX.Element> = {
     upload: renderUpload,
-    engines: renderEngines,
     pipeline: renderPipeline,
     results: renderResults,
-    compare: renderCompare,
     templates: renderTemplates,
     export: renderExport,
   };

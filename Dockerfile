@@ -5,11 +5,14 @@ RUN npm install
 COPY frontend/ ./
 RUN npm run build
 
-FROM python:3.11-slim
+FROM python:3.12-slim
 WORKDIR /app
 
 COPY backend/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Install bitsandbytes for Qwen-VL 4-bit quantization support
+RUN pip install --no-cache-dir "bitsandbytes>=0.46.1"
 
 COPY backend/ ./
 COPY --from=frontend-build /app/frontend/dist ./static

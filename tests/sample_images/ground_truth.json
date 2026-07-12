@@ -1,0 +1,62 @@
+{
+  "printed_1.png": {
+    "doc_class": "PRINTED_TEXT",
+    "text": "Alanine Aminotransferase 78 U/L\nAspartate Aminotransferase 65 U/L\nAlkaline Phosphatase 120 U/L\nAlbumin 3.2 g/dL\nTotal Bilirubin 1.5 mg/dL"
+  },
+  "printed_2.png": {
+    "doc_class": "PRINTED_TEXT",
+    "text": "Alanine Aminotransferase 78 U/L\nAspartate Aminotransferase 65 U/L\nAlkaline Phosphatase 120 U/L\nAlbumin 3.2 g/dL\nTotal Bilirubin 1.5 mg/dL\nGamma Glutamyl Transferase 55 U/L"
+  },
+  "printed_3.png": {
+    "doc_class": "PRINTED_TEXT",
+    "text": "Alanine Aminotransferase 78 U/L\nAspartate Aminotransferase 65 U/L\nAlkaline Phosphatase 120 U/L\nAlbumin 3.2 g/dL\nTotal Bilirubin 1.5 mg/dL\nGamma Glutamyl Transferase 55 U/L\nCreatinine 0.9 mg/dL"
+  },
+  "printed_4.png": {
+    "doc_class": "PRINTED_TEXT",
+    "text": "Alanine Aminotransferase 78 U/L\nAspartate Aminotransferase 65 U/L\nAlkaline Phosphatase 120 U/L\nAlbumin 3.2 g/dL\nTotal Bilirubin 1.5 mg/dL"
+  },
+  "printed_5.png": {
+    "doc_class": "PRINTED_TEXT",
+    "text": "Alanine Aminotransferase 78 U/L\nAspartate Aminotransferase 65 U/L\nAlkaline Phosphatase 120 U/L\nAlbumin 3.2 g/dL\nTotal Bilirubin 1.5 mg/dL\nGamma Glutamyl Transferase 55 U/L"
+  },
+  "table_1.png": {
+    "doc_class": "TABLE",
+    "text": "Test | Result | Unit\nTest | Result | Unit\nAST | 65 | U/L\nALP | 120 | U/L\nALT | 55 | g/dL\nAST | 40 | mg/dL\nALP | 99 | U/L"
+  },
+  "table_2.png": {
+    "doc_class": "TABLE",
+    "text": "Test | Result | Unit\nTest | Result | Unit\nAST | 65 | U/L\nALP | 120 | U/L\nALT | 55 | g/dL\nAST | 40 | mg/dL\nALP | 99 | U/L"
+  },
+  "table_3.png": {
+    "doc_class": "TABLE",
+    "text": "Test | Result | Unit\nTest | Result | Unit\nAST | 65 | U/L\nALP | 120 | U/L\nALT | 55 | g/dL\nAST | 40 | mg/dL\nALP | 99 | U/L"
+  },
+  "table_4.png": {
+    "doc_class": "TABLE",
+    "text": "Test | Result | Unit\nTest | Result | Unit\nAST | 65 | U/L\nALP | 120 | U/L\nALT | 55 | g/dL\nAST | 40 | mg/dL\nALP | 99 | U/L"
+  },
+  "table_5.png": {
+    "doc_class": "TABLE",
+    "text": "Test | Result | Unit\nTest | Result | Unit\nAST | 65 | U/L\nALP | 120 | U/L\nALT | 55 | g/dL\nAST | 40 | mg/dL\nALP | 99 | U/L"
+  },
+  "handwritten_1.png": {
+    "doc_class": "HANDWRITTEN",
+    "text": "handwritten clinical note (freehand strokes)"
+  },
+  "handwritten_2.png": {
+    "doc_class": "HANDWRITTEN",
+    "text": "handwritten clinical note (freehand strokes)"
+  },
+  "handwritten_3.png": {
+    "doc_class": "HANDWRITTEN",
+    "text": "handwritten clinical note (freehand strokes)"
+  },
+  "handwritten_4.png": {
+    "doc_class": "HANDWRITTEN",
+    "text": "handwritten clinical note (freehand strokes)"
+  },
+  "handwritten_5.png": {
+    "doc_class": "HANDWRITTEN",
+    "text": "handwritten clinical note (freehand strokes)"
+  }
+}

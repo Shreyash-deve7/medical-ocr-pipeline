@@ -33,6 +33,35 @@ export const getPatientProfile = (token: string) =>
 export const updatePatientProfile = (token: string, data: any) =>
   jsonPut(`/patient/profile?token=${token}`, data);
 
+// ── No-auth test endpoints (test-only version, no login required) ───────────
+// These hit /api/test/* which operate on a seeded default patient on the backend.
+export const testUploadReport = (file: File) => {
+  const fd = new FormData();
+  fd.append("file", file);
+  return request<{ report_id: string; filename: string }>("/test/upload", { method: "POST", body: fd });
+};
+export const testReports = () => request<any[]>("/test/reports");
+
+// ── GPU status & preload (no auth) ───────────────────────────
+export interface GpuStatus {
+  cuda_available: boolean;
+  cuda_device_name: string;
+  torch_version: string;
+  preload_started: boolean;
+  preload_done: boolean;
+  preload_error: string | null;
+  classifier_loaded: boolean;
+  classifier_error: string | null;
+  paddle_loaded: boolean;
+  paddle_using_gpu: boolean;
+  paddle_error: string | null;
+  qwen_loaded: boolean;
+  qwen_error: string | null;
+}
+export const gpuStatus = () => request<GpuStatus>("/gpu/status");
+export const gpuPreload = () =>
+  request<{ status: string; message: string }>("/gpu/preload", { method: "POST" });
+
 // ── Doctor Auth ─────────────────────────────────────────────
 export const doctorRegister = (data: any) => jsonPost("/doctor/register", data) as Promise<{ token: string; doctor_id: string }>;
 export const doctorLogin = (phone: string, password: string) =>
@@ -45,8 +74,57 @@ export const patientReportList = (id: string) => request<any[]>(`/doctor/patient
 export const fileUrl = (id: string) => `${BASE}/file/${id}`;
 
 // ── Analysis ────────────────────────────────────────────────
-export const analyzeReport = (reportId: string, opts: { apiKey?: string; ocrProviderId?: string; aiProviderId?: string } = {}) =>
-  jsonPost("/doctor/analyze", { report_id: reportId, api_key: opts.apiKey || "", ocr_provider_id: opts.ocrProviderId || "", ai_provider_id: opts.aiProviderId || "" }) as Promise<{ analysis: string; ocr_text: string }>;
+export const analyzeReport = (reportId: string, opts: { apiKey?: string; aiProviderId?: string } = {}) =>
+  jsonPost("/doctor/analyze", { report_id: reportId, api_key: opts.apiKey || "", ai_provider_id: opts.aiProviderId || "" }) as Promise<{ analysis: string; ocr_text: string; doc_type: string; structured_results: any[]; ocr_engine: string; report_id: string; status: string }>;
+
+// ── Pipeline (Session 8 endpoint) ───────────────────────────
+export const runPipeline = async (
+  fileBlob: Blob,
+  filename: string,
+  opts: { summary?: boolean; evaluate?: boolean } = {}
+) => {
+  const fd = new FormData();
+  fd.append("file", fileBlob, filename);
+  if (opts.summary) fd.append("summary", "true");
+  if (opts.evaluate) fd.append("evaluate", "true");
+  return request<PipelineResult>("/pipeline/run", { method: "POST", body: fd });
+};
+
+export interface PipelineResult {
+  preprocessing: { transformations_applied: string[]; quality_metrics_before: any; quality_metrics_after?: any } | null;
+  classification: { class: string; confidence: number; fallback_triggered: boolean } | null;
+  ocr: { raw_output: any; engine: string; confidence: number; processing_time_seconds: number } | null;
+  lab_report: { lab_results: LabResult[] } | null;
+  diagnosis: {
+    clinical_patterns: any[];
+    abnormal_values: any[];
+    urgent_flags: string[];
+    suggested_followup: string[];
+    summary_for_doctor: string;
+    llm_narrative?: string | null;
+  } | null;
+  summary: { summary: string; flags: any[]; critical_alerts: string[]; discussion_points: string[] } | null;
+  evaluation: any | null;
+  metadata: {
+    use_graph: boolean;
+    evaluate: boolean;
+    summary: boolean;
+    duration_ms: number;
+    started_at: string;
+    completed_at: string;
+    errors?: Record<string, string>;
+  };
+}
+
+export interface LabResult {
+  test_name: string;
+  test_abbreviation?: string | null;
+  value: number | null;
+  unit: string;
+  flag: "HIGH" | "LOW" | "CRITICAL_HIGH" | "CRITICAL_LOW" | "NORMAL" | "UNKNOWN";
+  reference_range: { low: number | null; high: number | null; unit: string } | null;
+  clinical_significance: string | null;
+}
 
 // ── Medical Records ─────────────────────────────────────────
 export const listAllergies = (pid: string) => request<any[]>(`/patient/${pid}/allergies`);

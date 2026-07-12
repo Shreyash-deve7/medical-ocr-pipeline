@@ -1,0 +1,435 @@
+{
+    "fuzzy_match_threshold": 0.7,
+    "test_name_mappings": {
+        "hemoglobin": [
+            "heamo",
+            "heamoglobing",
+            "hb",
+            "hgb",
+            "heamoglobin",
+            "hemoglobyn",
+            "haemoglobin",
+            "hemoglobn",
+            "emoglobin",
+            "hemo",
+            "heam",
+            "hemaglobin"
+        ],
+        "white blood cell count": [
+            "wbc",
+            "w.b.c",
+            "white blood",
+            "white blood cells",
+            "total leucocyte count",
+            "leucocyte",
+            "leukocyt",
+            "w hite blood",
+            "white cell"
+        ],
+        "platelet count": [
+            "plt",
+            "platelets",
+            "platelet",
+            "total platelets",
+            "platlet",
+            "platele",
+            "pletelet",
+            "platlets"
+        ],
+        "red blood cell count": [
+            "rbc",
+            "r.b.c",
+            "red blood cells",
+            "red cell",
+            "r bc"
+        ],
+        "alt": [
+            "sgpt",
+            "alanine aminotransferase",
+            "serum glutamic pyruvic transaminase",
+            "gpt",
+            "s.g.p.t",
+            "alanin",
+            "aminotransferas",
+            "sgp t"
+        ],
+        "ast": [
+            "sgot",
+            "aspartate aminotransferase",
+            "serum glutamic oxaloacetic transaminase",
+            "got",
+            "s.g.o.t",
+            "aspartat",
+            "sgo t"
+        ],
+        "alkaline phosphatase": [
+            "alp",
+            "alk phos",
+            "alkaline phos",
+            "lkaline",
+            "hosphatase",
+            "phosphatse",
+            "alkalin",
+            "alk. phos",
+            "alkaline phospatase",
+            "alkalinephosphatase"
+        ],
+        "total bilirubin": [
+            "tbil",
+            "bil t",
+            "bilirubin total",
+            "t. bilirubin",
+            "bilrubin",
+            "billirubin",
+            "bilurubin",
+            "lirubin",
+            "t.bilirubin",
+            "total bili",
+            "tot bilirubin"
+        ],
+        "albumin": [
+            "alb",
+            "serum albumin",
+            "albmin",
+            "abumin",
+            "alhumin",
+            "albumen"
+        ],
+        "total protein": [
+            "tp",
+            "protein total",
+            "serum total protein",
+            "protien",
+            "total prot",
+            "proten",
+            "t. protein"
+        ],
+        "creatinine": [
+            "creat",
+            "serum creatinine",
+            "creatinin",
+            "creatnine",
+            "atinine",
+            "cretinine",
+            "creatin",
+            "creatinie"
+        ],
+        "blood urea nitrogen": [
+            "bun",
+            "urea nitrogen",
+            "blood urea",
+            "urea",
+            "b.u.n"
+        ],
+        "glucose": [
+            "gluc",
+            "fasting blood sugar",
+            "fbs",
+            "blood sugar",
+            "glocuse",
+            "glucos",
+            "fasting sugar"
+        ],
+        "calcium": [
+            "ca",
+            "serum calcium",
+            "calcuim",
+            "calcum",
+            "calcium total"
+        ],
+        "sodium": [
+            "na",
+            "serum sodium",
+            "sodum",
+            "sodim",
+            "sodiun"
+        ],
+        "potassium": [
+            "k",
+            "serum potassium",
+            "potasum",
+            "potazzium",
+            "tassium",
+            "potass",
+            "potasium",
+            "potassim"
+        ],
+        "chloride": [
+            "cl",
+            "serum chloride",
+            "chlorid",
+            "chlorde",
+            "cloride"
+        ],
+        "total cholesterol": [
+            "chol",
+            "tc",
+            "serum cholesterol",
+            "cholestrol",
+            "cholsterol",
+            "chlesterol",
+            "tot cholesterol"
+        ],
+        "triglycerides": [
+            "tg",
+            "trig",
+            "serum triglycerides",
+            "triglycerid",
+            "triglcerides",
+            "tryglycerides",
+            "triglicerides"
+        ],
+        "hdl cholesterol": [
+            "hdl",
+            "high density lipoprotein",
+            "hdl chol",
+            "hdl-cholesterol"
+        ],
+        "ldl cholesterol": [
+            "ldl",
+            "low density lipoprotein",
+            "ldl chol",
+            "ldl-cholesterol"
+        ],
+        "alpha-fetoprotein": [
+            "afp",
+            "alpha feto",
+            "fetoprotein",
+            "a-fetoprotein"
+        ],
+        "prothrombin time": [
+            "pt",
+            "pt/pti",
+            "pti",
+            "prothombin",
+            "prothrom",
+            "p.t."
+        ],
+        "aptt": [
+            "aptt",
+            "kpt",
+            "kptt",
+            "partial thromboplastin",
+            "a.p.t.t"
+        ],
+        "inr": [
+            "inr",
+            "i.n.r"
+        ],
+        "gamma-glutamyl transferase": [
+            "ggt",
+            "gamma gt",
+            "gama gt",
+            "glutamyl",
+            "gamma-glutamyl",
+            "gamma glutamyl"
+        ],
+        "hepatitis b surface antigen": [
+            "hbsag",
+            "qhbsag",
+            "hbs ag",
+            "hepatitis b",
+            "hep b surface"
+        ],
+        "hepatitis c virus antibody": [
+            "hcv",
+            "anti-hcv",
+            "hcvrna",
+            "anti hcv",
+            "hep c",
+            "hepatitis c"
+        ],
+        "ammonia": [
+            "ammonia",
+            "amonia",
+            "ammona"
+        ],
+        "ceruloplasmin": [
+            "ceruloplasmin",
+            "ceruloplasmn",
+            "ceruloplasmine"
+        ],
+        "24hr urine copper": [
+            "24hr urine copper",
+            "urine copper",
+            "urinary copper"
+        ],
+        "fibrosis index": [
+            "fibrosis index (fib-4)",
+            "fib-4",
+            "fib 4",
+            "fibrosis"
+        ],
+        "iron": [
+            "iron",
+            "serum iron",
+            "s. iron",
+            "serum fe"
+        ],
+        "tibc": [
+            "tibc",
+            "total iron binding capacity",
+            "total iron binding capacity (tibc)",
+            "t.i.b.c"
+        ],
+        "uibc": [
+            "uibc",
+            "unsat.iron-binding capacity(uibc)",
+            "unsaturated iron binding capacity",
+            "u.i.b.c"
+        ],
+        "globulin": [
+            "globulin",
+            "globuln",
+            "gloubulin",
+            "globuline"
+        ],
+        "direct bilirubin": [
+            "d. bilirubin",
+            "direct bilirubin",
+            "bilirubin direct",
+            "bili d",
+            "direct bili",
+            "d.bilirubin",
+            "direct bilrubin",
+            "dir bilirubin"
+        ],
+        "indirect bilirubin": [
+            "indirect bilirubin",
+            "bilirubin indirect",
+            "bili i",
+            "indirect bili",
+            "ind bilirubin",
+            "i.bilirubin",
+            "indir bilirubin"
+        ]
+    },
+    "correction_rules": {
+        "decimal_to_comma_swap_keys": [
+            "white blood cell count",
+            "platelet count"
+        ],
+        "magnitude_checks": {
+            "platelet count": {
+                "expected_min": 150000.0,
+                "expected_max": 450000.0,
+                "allow_decimal_comma_swap": true
+            },
+            "white blood cell count": {
+                "expected_min": 4000.0,
+                "expected_max": 11000.0,
+                "allow_decimal_comma_swap": true
+            },
+            "alt": {
+                "expected_min": 7.0,
+                "expected_max": 56.0,
+                "allow_decimal_comma_swap": false
+            },
+            "ast": {
+                "expected_min": 8.0,
+                "expected_max": 48.0,
+                "allow_decimal_comma_swap": false
+            },
+            "alkaline phosphatase": {
+                "expected_min": 40.0,
+                "expected_max": 129.0,
+                "allow_decimal_comma_swap": false
+            },
+            "total bilirubin": {
+                "expected_min": 0.1,
+                "expected_max": 1.2,
+                "allow_decimal_comma_swap": true
+            },
+            "albumin": {
+                "expected_min": 3.5,
+                "expected_max": 5.0,
+                "allow_decimal_comma_swap": true
+            },
+            "total protein": {
+                "expected_min": 6.3,
+                "expected_max": 7.9,
+                "allow_decimal_comma_swap": true
+            },
+            "creatinine": {
+                "expected_min": 0.5,
+                "expected_max": 1.5,
+                "allow_decimal_comma_swap": true
+            },
+            "blood urea nitrogen": {
+                "expected_min": 7.0,
+                "expected_max": 20.0,
+                "allow_decimal_comma_swap": true
+            },
+            "glucose": {
+                "expected_min": 70.0,
+                "expected_max": 100.0,
+                "allow_decimal_comma_swap": false
+            },
+            "calcium": {
+                "expected_min": 8.5,
+                "expected_max": 10.5,
+                "allow_decimal_comma_swap": true
+            },
+            "sodium": {
+                "expected_min": 135.0,
+                "expected_max": 145.0,
+                "allow_decimal_comma_swap": false
+            },
+            "potassium": {
+                "expected_min": 3.5,
+                "expected_max": 5.0,
+                "allow_decimal_comma_swap": true
+            },
+            "chloride": {
+                "expected_min": 96.0,
+                "expected_max": 106.0,
+                "allow_decimal_comma_swap": false
+            },
+            "total cholesterol": {
+                "expected_min": 100.0,
+                "expected_max": 200.0,
+                "allow_decimal_comma_swap": false
+            },
+            "triglycerides": {
+                "expected_min": 50.0,
+                "expected_max": 150.0,
+                "allow_decimal_comma_swap": false
+            },
+            "hdl cholesterol": {
+                "expected_min": 40.0,
+                "expected_max": 100.0,
+                "allow_decimal_comma_swap": false
+            },
+            "ldl cholesterol": {
+                "expected_min": 0.0,
+                "expected_max": 100.0,
+                "allow_decimal_comma_swap": false
+            },
+            "prothrombin time": {
+                "expected_min": 10.0,
+                "expected_max": 14.0,
+                "allow_decimal_comma_swap": true
+            },
+            "inr": {
+                "expected_min": 0.8,
+                "expected_max": 1.2,
+                "allow_decimal_comma_swap": true
+            },
+            "direct bilirubin": {
+                "expected_min": 0.0,
+                "expected_max": 0.3,
+                "allow_decimal_comma_swap": true
+            },
+            "indirect bilirubin": {
+                "expected_min": 0.2,
+                "expected_max": 0.8,
+                "allow_decimal_comma_swap": true
+            },
+            "globulin": {
+                "expected_min": 2.0,
+                "expected_max": 3.5,
+                "allow_decimal_comma_swap": true
+            }
+        }
+    }
+}

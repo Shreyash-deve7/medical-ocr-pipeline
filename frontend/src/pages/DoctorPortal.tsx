@@ -7,46 +7,53 @@ interface Props {
   onOpenChart?: (patientId: string) => void;
 }
 
+const PIPELINE_STAGES = ["Preprocess", "Classify", "OCR", "Extract + Diagnose"];
+
+const flagClass = (flag?: string) =>
+  ({
+    CRITICAL_HIGH: "flag-critical-high",
+    CRITICAL_LOW: "flag-critical-low",
+    HIGH: "flag-high",
+    LOW: "flag-low",
+    NORMAL: "flag-normal",
+    UNKNOWN: "flag-unknown",
+  }[flag || "UNKNOWN"] || "flag-unknown");
+
+const classClass = (cls?: string) =>
+  ({
+    TABLE: "cls-table",
+    HANDWRITTEN: "cls-handwritten",
+    PRINTED_TEXT: "cls-printed",
+  }[cls || ""] || "cls-unknown");
+
 export function DoctorPortal({ onBack, notify, onOpenChart }: Props) {
   const [patients, setPatients] = useState<any[]>([]);
   const [loadingPatients, setLoadingPatients] = useState(true);
   const [selectedPatient, setSelectedPatient] = useState<any>(null);
   const [reports, setReports] = useState<any[]>([]);
   const [loadingReports, setLoadingReports] = useState(false);
-  const [analyzing, setAnalyzing] = useState<string | null>(null);
+  const [runningPipelineFor, setRunningPipelineFor] = useState<string | null>(null);
   const [expandedReport, setExpandedReport] = useState<string | null>(null);
   const [previewReport, setPreviewReport] = useState<string | null>(null);
+  const [pipelineResult, setPipelineResult] = useState<api.PipelineResult | null>(null);
+  const [pipelineReportId, setPipelineReportId] = useState<string | null>(null);
+  const [pipelineError, setPipelineError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-
-  // provider state
-  const [providers, setProviders] = useState<api.Provider[]>([]);
-  const [selectedOCR, setSelectedOCR] = useState("");
-  const [selectedAI, setSelectedAI] = useState("");
-  const [fallbackKey, setFallbackKey] = useState(() => localStorage.getItem("medvault_api_key") || "");
 
   useEffect(() => {
     api.listPatients()
       .then(setPatients)
       .catch(() => {})
       .finally(() => setLoadingPatients(false));
-    api.listProviders().then(p => {
-      setProviders(p);
-      const defaultOCR = p.find(x => x.kind === "ocr" && x.is_default);
-      const defaultAI = p.find(x => x.kind === "ai" && x.is_default);
-      if (defaultOCR) setSelectedOCR(defaultOCR.id);
-      if (defaultAI) setSelectedAI(defaultAI.id);
-    }).catch(() => {});
   }, []);
-
-  const saveFallbackKey = (key: string) => {
-    setFallbackKey(key);
-    localStorage.setItem("medvault_api_key", key);
-  };
 
   const selectPatient = async (p: any) => {
     setSelectedPatient(p);
     setExpandedReport(null);
     setPreviewReport(null);
+    setPipelineResult(null);
+    setPipelineReportId(null);
+    setPipelineError(null);
     setLoadingReports(true);
     try {
       setReports(await api.patientReportList(p.id));
@@ -57,25 +64,25 @@ export function DoctorPortal({ onBack, notify, onOpenChart }: Props) {
     }
   };
 
-  const handleAnalyze = async (reportId: string) => {
-    const hasAI = providers.some(p => p.kind === "ai");
-    if (!hasAI && !fallbackKey) return notify("Configure an AI provider in Settings, or enter an API key below", "error");
-    setAnalyzing(reportId);
+  const handleRunPipeline = async (reportId: string, filename: string) => {
+    setRunningPipelineFor(reportId);
+    setPipelineError(null);
+    setPipelineResult(null);
+    setPipelineReportId(reportId);
+    setExpandedReport(reportId);
     try {
-      const result = await api.analyzeReport(reportId, {
-        ocrProviderId: selectedOCR,
-        aiProviderId: selectedAI,
-        apiKey: fallbackKey,
-      });
+      const blob = await (await fetch(api.fileUrl(reportId))).blob();
+      const result = await api.runPipeline(blob, filename, { summary: true });
+      setPipelineResult(result);
       setReports(prev =>
-        prev.map(r => r.id === reportId ? { ...r, analysis: result.analysis, ocr_text: result.ocr_text, analyzed: 1 } : r)
+        prev.map(r => (r.id === reportId ? { ...r, analyzed: 1 } : r))
       );
-      setExpandedReport(reportId);
-      notify("Analysis complete!");
+      notify("Pipeline complete!");
     } catch (e: any) {
-      notify(e.message, "error");
+      setPipelineError(e.message || "Pipeline failed");
+      notify(e.message || "Pipeline failed", "error");
     } finally {
-      setAnalyzing(null);
+      setRunningPipelineFor(null);
     }
   };
 
@@ -92,9 +99,6 @@ export function DoctorPortal({ onBack, notify, onOpenChart }: Props) {
   const COLORS = ["#4f6ef7", "#a78bfa", "#10b981", "#f59e0b", "#ef4444", "#ec4899"];
   const avatarColor = (name: string) => COLORS[Math.abs([...name].reduce((a, c) => a + c.charCodeAt(0), 0)) % COLORS.length];
   const initials = (name: string) => name ? name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() : "?";
-
-  const ocrProviders = providers.filter(p => p.kind === "ocr");
-  const aiProviders = providers.filter(p => p.kind === "ai");
 
   // ── Patient detail view ──────────────────────────────
   if (selectedPatient) {
@@ -146,40 +150,6 @@ export function DoctorPortal({ onBack, notify, onOpenChart }: Props) {
           </div>
         )}
 
-        {/* Pipeline config bar */}
-        <div className="pipeline-bar neu">
-          <div className="pipeline-bar-label">Pipeline</div>
-          <div className="pipeline-selectors">
-            <div className="pipeline-select">
-              <label>OCR</label>
-              <select className="neu-input sm" value={selectedOCR} onChange={e => setSelectedOCR(e.target.value)}>
-                <option value="">Built-in (PyMuPDF)</option>
-                {ocrProviders.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
-            </div>
-            <div className="pipeline-arrow">→</div>
-            <div className="pipeline-select">
-              <label>AI Model</label>
-              <select className="neu-input sm" value={selectedAI} onChange={e => setSelectedAI(e.target.value)}>
-                <option value="">None (use key below)</option>
-                {aiProviders.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
-            </div>
-          </div>
-          {!aiProviders.length && (
-            <div className="pipeline-fallback">
-              <span className="lock-icon">🔑</span>
-              <input
-                className="neu-input"
-                placeholder="Gemini API Key (fallback)"
-                type="password"
-                value={fallbackKey}
-                onChange={e => saveFallbackKey(e.target.value)}
-              />
-            </div>
-          )}
-        </div>
-
         {loadingReports ? (
           <div>
             {[1, 2, 3].map(i => <div key={i} className="skeleton skeleton-card" />)}
@@ -192,71 +162,85 @@ export function DoctorPortal({ onBack, notify, onOpenChart }: Props) {
           </div>
         ) : (
           <div className="report-list">
-            {reports.map(r => (
-              <div key={r.id}>
-                <div className="report-card neu">
-                  <div className="file-thumb">
-                    {r.filetype === "pdf" ? "📕" : "🖼️"}
-                  </div>
-                  <div className="report-body">
-                    <div className="report-title">{r.filename}</div>
-                    <div className="report-date">
-                      Shared {new Date(r.shared_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-                      {" at "}
-                      {new Date(r.shared_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+            {reports.map(r => {
+              const running = runningPipelineFor === r.id;
+              const showResult = !running && pipelineReportId === r.id && pipelineResult;
+              return (
+                <div key={r.id}>
+                  <div className="report-card neu">
+                    <div className="file-thumb">
+                      {r.filetype === "pdf" ? "📕" : "🖼️"}
                     </div>
-                    <div className="report-actions">
-                      <a href={api.fileUrl(r.id)} target="_blank" rel="noopener">
-                        <button className="neu-btn sm">Open File</button>
-                      </a>
-                      <button
-                        className="neu-btn sm"
-                        onClick={() => setPreviewReport(previewReport === r.id ? null : r.id)}
-                      >
-                        {previewReport === r.id ? "Hide Preview" : "Preview"}
-                      </button>
-                      <button
-                        className="neu-btn sm primary"
-                        disabled={analyzing === r.id}
-                        onClick={() => handleAnalyze(r.id)}
-                      >
-                        {analyzing === r.id ? <><span className="spinner white" /> Analyzing...</> : r.analyzed ? "Re-Analyze" : "Analyze"}
-                      </button>
-                      {!!r.analyzed && (
+                    <div className="report-body">
+                      <div className="report-title">{r.filename}</div>
+                      <div className="report-date">
+                        Shared {new Date(r.shared_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                        {" at "}
+                        {new Date(r.shared_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                      </div>
+                      <div className="report-actions">
+                        <a href={api.fileUrl(r.id)} target="_blank" rel="noopener">
+                          <button className="neu-btn sm">Open File</button>
+                        </a>
                         <button
-                          className="neu-btn sm ghost"
-                          onClick={() => setExpandedReport(expandedReport === r.id ? null : r.id)}
+                          className="neu-btn sm"
+                          onClick={() => setPreviewReport(previewReport === r.id ? null : r.id)}
                         >
-                          {expandedReport === r.id ? "Hide Analysis" : "View Analysis"}
+                          {previewReport === r.id ? "Hide Preview" : "Preview"}
                         </button>
+                        <button
+                          className="neu-btn sm primary"
+                          disabled={running}
+                          onClick={() => handleRunPipeline(r.id, r.filename)}
+                        >
+                          {running ? <><span className="spinner white" /> Running Pipeline…</> : "Run Pipeline"}
+                        </button>
+                        {!!r.analyzed && (
+                          <button
+                            className="neu-btn sm ghost"
+                            onClick={() => setExpandedReport(expandedReport === r.id ? null : r.id)}
+                          >
+                            {expandedReport === r.id ? "Hide Analysis" : "View Analysis"}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="report-right">
+                      <span className={`tag ${r.filetype}`}>{r.filetype}</span>
+                      {r.analyzed ? <span className="tag analyzed">Analyzed</span> : <span className="tag pending">Pending</span>}
+                    </div>
+                  </div>
+
+                  {previewReport === r.id && (
+                    <div className="file-preview">
+                      {r.filetype === "image" ? (
+                        <img src={api.fileUrl(r.id)} alt={r.filename} />
+                      ) : (
+                        <iframe src={api.fileUrl(r.id)} title={r.filename} />
                       )}
                     </div>
-                  </div>
-                  <div className="report-right">
-                    <span className={`tag ${r.filetype}`}>{r.filetype}</span>
-                    {r.analyzed ? <span className="tag analyzed">Analyzed</span> : <span className="tag pending">Pending</span>}
-                  </div>
-                </div>
+                  )}
 
-                {previewReport === r.id && (
-                  <div className="file-preview">
-                    {r.filetype === "image" ? (
-                      <img src={api.fileUrl(r.id)} alt={r.filename} />
-                    ) : (
-                      <iframe src={api.fileUrl(r.id)} title={r.filename} />
-                    )}
-                  </div>
-                )}
-
-                {expandedReport === r.id && r.analysis && (
-                  <div className="analysis-panel neu-inset">
-                    <div className="analysis-content">
-                      <AnalysisRenderer text={r.analysis} />
+                  {expandedReport === r.id && (
+                    <div className="analysis-panel neu-inset">
+                      {running && <PipelineStrip running />}
+                      {pipelineError && !running && (
+                        <div className="pipeline-error">⚠ {pipelineError}</div>
+                      )}
+                      {showResult && pipelineResult && (
+                        <>
+                          <PipelineStrip done />
+                          <PipelineAccordion result={pipelineResult} />
+                        </>
+                      )}
+                      {!running && !showResult && !pipelineError && (
+                        <div className="pipeline-empty">Run the pipeline to see classification, OCR, extracted labs, and the AI diagnosis.</div>
+                      )}
                     </div>
-                  </div>
-                )}
-              </div>
-            ))}
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
@@ -335,39 +319,184 @@ export function DoctorPortal({ onBack, notify, onOpenChart }: Props) {
   );
 }
 
-function AnalysisRenderer({ text }: { text: string }) {
-  const lines = text.split("\n");
-  const elements: JSX.Element[] = [];
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    if (line.startsWith("## ")) {
-      elements.push(<h2 key={i}>{line.slice(3)}</h2>);
-    } else if (line.startsWith("- ") || line.startsWith("* ")) {
-      const items: string[] = [line.slice(2)];
-      while (i + 1 < lines.length && (lines[i + 1].startsWith("- ") || lines[i + 1].startsWith("* "))) {
-        i++;
-        items.push(lines[i].slice(2));
-      }
-      elements.push(
-        <ul key={i}>
-          {items.map((item, j) => <li key={j}>{renderInline(item)}</li>)}
-        </ul>
-      );
-    } else if (line.trim()) {
-      elements.push(<p key={i}>{renderInline(line)}</p>);
-    }
-  }
-
-  return <>{elements}</>;
+function PipelineStrip({ running, done }: { running?: boolean; done?: boolean }) {
+  return (
+    <div className={`pipeline-strip${running ? " running" : ""}${done ? " done" : ""}`}>
+      {PIPELINE_STAGES.map((stage, i) => (
+        <div className="pipeline-stage" key={stage} style={{ ["--i" as any]: i }}>
+          <div className="stage-dot">{done || (!running && i < (done ? 4 : 0)) ? "✓" : i + 1}</div>
+          <span className="stage-label">{stage}</span>
+        </div>
+      ))}
+    </div>
+  );
 }
 
-function renderInline(text: string) {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
-  return parts.map((p, i) => {
-    if (p.startsWith("**") && p.endsWith("**")) {
-      return <strong key={i}>{p.slice(2, -2)}</strong>;
-    }
-    return <span key={i}>{p}</span>;
-  });
+function PipelineAccordion({ result }: { result: api.PipelineResult }) {
+  const cls = result.classification;
+  const lab = result.lab_report?.lab_results || [];
+  const dx = result.diagnosis;
+  const pre = result.preprocessing;
+
+  return (
+    <div className="pipeline-accordion">
+      {/* Panel 1 — Classification */}
+      <details className="acc-panel" open>
+        <summary><span className="acc-num">1</span> Classification Result</summary>
+        <div className="acc-body">
+          {cls ? (
+            <>
+              <div className="class-row">
+                <span className={`class-chip ${classClass(cls.class)}`}>{cls.class || "UNKNOWN"}</span>
+                <span className="confidence">
+                  <span className="confidence-label">Confidence</span>
+                  <span className="confidence-track">
+                    <span className="confidence-fill" style={{ width: `${Math.round((cls.confidence || 0) * 100)}%` }} />
+                  </span>
+                  <span className="confidence-val">{Math.round((cls.confidence || 0) * 100)}%</span>
+                </span>
+              </div>
+              {cls.fallback_triggered && <div className="fallback-note">⚠ Classifier fallback triggered</div>}
+              <div className="badge-row">
+                <span className="badge-label">Preprocessing transforms:</span>
+                {(pre?.transformations_applied || []).map((t: string, i: number) => (
+                  <span className="transform-badge" key={i}>{t}</span>
+                ))}
+                {(!pre?.transformations_applied || pre.transformations_applied.length === 0) && <span className="muted">none</span>}
+              </div>
+            </>
+          ) : (
+            <div className="muted">No classification result.</div>
+          )}
+        </div>
+      </details>
+
+      {/* Panel 2 — OCR Text */}
+      <details className="acc-panel" open>
+        <summary><span className="acc-num">2</span> OCR Text</summary>
+        <div className="acc-body">
+          {(() => {
+            const ocr = result.ocr;
+            if (!ocr || (!ocr.raw_output && ocr.raw_output !== 0)) {
+              return <div className="muted">No OCR text was produced for this report.</div>;
+            }
+            const raw = ocr.raw_output;
+            const isTable = Array.isArray(raw) && raw.length > 0 && Array.isArray(raw[0]);
+            const ocrText = typeof raw === "string" ? raw : isTable ? null : JSON.stringify(raw, null, 2);
+            return (
+              <>
+                <div className="badge-row" style={{ marginBottom: 10 }}>
+                  <span className="transform-badge">Engine: {ocr.engine || "unknown"}</span>
+                  {ocr.confidence != null && (
+                    <span className="transform-badge">Confidence: {Math.round((ocr.confidence || 0) * 100)}%</span>
+                  )}
+                  {ocr.processing_time_seconds != null && (
+                    <span className="transform-badge">{ocr.processing_time_seconds.toFixed(2)}s</span>
+                  )}
+                </div>
+                {isTable ? (
+                  <div className="lab-table-wrap">
+                    <table className="lab-table">
+                      <tbody>
+                        {(raw as string[][]).map((row, ri) => (
+                          <tr key={ri}>
+                            {row.map((cell, ci) => (
+                              <td key={ci}>{cell}</td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <pre className="ocr-text-output">{ocrText}</pre>
+                )}
+              </>
+            );
+          })()}
+        </div>
+      </details>
+
+      {/* Panel 3 — Extracted Lab Results */}
+      <details className="acc-panel" open>
+        <summary><span className="acc-num">3</span> Extracted Lab Results</summary>
+        <div className="acc-body">
+          {lab.length > 0 ? (
+            <div className="lab-table-wrap">
+              <table className="lab-table">
+                <thead>
+                  <tr>
+                    <th>Test Name</th>
+                    <th>Value</th>
+                    <th>Unit</th>
+                    <th>Reference Range</th>
+                    <th>Flag</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lab.map((lr: api.LabResult, i: number) => (
+                    <tr key={i}>
+                      <td>{lr.test_name}{lr.test_abbreviation ? ` (${lr.test_abbreviation})` : ""}</td>
+                      <td>{lr.value ?? "—"}</td>
+                      <td>{lr.unit}</td>
+                      <td>
+                        {lr.reference_range
+                          ? `${lr.reference_range.low ?? "?"} – ${lr.reference_range.high ?? "?"} ${lr.reference_range.unit || ""}`
+                          : "—"}
+                      </td>
+                      <td><span className={`flag-chip ${flagClass(lr.flag)}`}>{lr.flag}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="muted">No lab results were extracted from this report.</div>
+          )}
+        </div>
+      </details>
+
+      {/* Panel 4 — AI Diagnosis */}
+      <details className="acc-panel" open>
+        <summary><span className="acc-num">4</span> AI Diagnosis Summary</summary>
+        <div className="acc-body">
+          {dx ? (
+            <>
+              <p className="dx-summary">{dx.summary_for_doctor}</p>
+              {dx.clinical_patterns?.length > 0 && (
+                <div className="badge-row">
+                  <span className="badge-label">Clinical patterns:</span>
+                  {dx.clinical_patterns.map((p: any, i: number) => (
+                    <span className="pattern-badge" key={i}>{p.pattern || p}</span>
+                  ))}
+                </div>
+              )}
+              {dx.urgent_flags?.length > 0 && (
+                <div className="urgent-row">
+                  {dx.urgent_flags.map((f: string, i: number) => (
+                    <span className="urgent-chip" key={i}>🚨 {f}</span>
+                  ))}
+                </div>
+              )}
+              {dx.suggested_followup?.length > 0 && (
+                <div className="followup">
+                  <div className="badge-label">Suggested follow-up:</div>
+                  <ul>
+                    {dx.suggested_followup.map((f: string, i: number) => (
+                      <li key={i}>{f}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {(!dx.summary_for_doctor && !dx.clinical_patterns?.length && !dx.urgent_flags?.length && !dx.suggested_followup?.length) && (
+                <div className="muted">No diagnosis output produced.</div>
+              )}
+            </>
+          ) : (
+            <div className="muted">No diagnosis result.</div>
+          )}
+        </div>
+      </details>
+    </div>
+  );
 }

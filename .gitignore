@@ -1,13 +1,72 @@
-node_modules/
-dist/
+# Python
 .venv/
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+.mypy_cache/
+.ruff_cache/
+*.py.bak
+
+# Node
+node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+
+# Database
 *.db
 *.db-shm
 *.db-wal
+medvault.db
+backend/medvault.db
+
+# Logs — all levels
+**/*.err
+**/*.log
+**/*.out
+backend/qwen_llama.*
+backend/print_ocr_*.txt
+backend/qwen_server.*
+backend/main.err
+backend/main.out
+
+# Uploads & weights
+backend/uploads/
 uploads/
-.claude/
-.env
-*.egg-info/
+backend/weights/*.pth
+backend/weights/*.pth.lock
+
+# Eval artifacts
+backend/eval_reports/
+backend/eval_report*.json
+backend/predictions.json
+backend/ocr_*.json
+
+# IDE
+.zcode/
+.vscode/
+.idea/
 .DS_Store
+*.swp
+*.swo
+*~
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# OS
+Thumbs.db
+Desktop.ini
+
+# CUDA / GPU artifacts
+*.cupti*
+*.nvvp

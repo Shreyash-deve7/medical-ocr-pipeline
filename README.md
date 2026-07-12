@@ -1,33 +1,165 @@
-# MedVault — Open-Source Medical Intelligence Ecosystem
+# MedVault — Medical OCR Pipeline
 
-A modular, pluggable medical platform for clinicians, researchers, pharma teams, and AI/OCR explorers. Built with FastAPI + React + TypeScript.
+A modular medical document OCR pipeline that classifies documents (TABLE / HANDWRITTEN / PRINTED_TEXT) and routes them to the appropriate OCR engine, with LLM-powered structured extraction and a Hepatology knowledge base.
+
+Built with FastAPI + React + TypeScript + SQLite.
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Python](https://img.shields.io/badge/python-3.9%2B-blue.svg)
+![Python](https://img.shields.io/badge/python-3.12-blue.svg)
 ![React](https://img.shields.io/badge/react-19-61dafb.svg)
+
+## Prerequisites
+
+- **Python 3.12**
+- **Node.js 20+**
+- **NVIDIA GPU** (optional — for GPU acceleration; runs on CPU without it)
+- **Windows** (PowerShell) or **macOS/Linux** (bash)
 
 ## Quick Start
 
+### 1. Clone the repo
+
 ```bash
-git clone https://github.com/YOUR_USERNAME/medvault.git
+git clone https://github.com/YOUR_ORG/medvault.git
 cd medvault
+```
+
+### 2. Run the setup script
+
+```powershell
+# Windows
+.\start.ps1
+```
+
+```bash
+# macOS / Linux
 chmod +x start.sh
 ./start.sh
 ```
 
-Or run manually:
+This will:
+- Create a Python virtual environment (`.venv/`)
+- Install backend dependencies (`backend/requirements.txt`)
+- Install frontend dependencies (`frontend/package.json`)
+- Start the backend on **http://localhost:8000**
+- Start the frontend on **http://localhost:5173**
+
+Open **http://localhost:5173** in your browser.
+
+---
+
+## Manual Setup
+
+### Backend
 
 ```bash
-# Backend
-python3 -m venv .venv
-.venv/bin/pip install -r backend/requirements.txt
-.venv/bin/uvicorn backend.main:app --port 8000 --reload
+python -m venv .venv
+.venv\Scripts\pip install -r backend\requirements.txt
 
-# Frontend (separate terminal)
-cd frontend && npm install && npm run dev
+# Optional: install GPU support for PaddleOCR (RTX 5060 / sm_120)
+# Download from: https://paddle-whl.bj.bcebos.com/stable/cu129/paddlepaddle-gpu/paddlepaddle_gpu-3.3.1-cp312-cp312-win_amd64.whl
+# Then: .venv\Scripts\pip install paddlepaddle_gpu-3.3.1-cp312-cp312-win_amd64.whl
+
+# Optional: install bitsandbytes for Qwen-VL 4-bit quantization
+.venv\Scripts\pip install bitsandbytes>=0.46.1
+
+# Start backend
+.venv\Scripts\uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-Open **http://localhost:5173**
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+---
+
+## Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `JWT_SECRET` | `dev-secret-change-me` | JWT signing key (change in production!) |
+| `GEMINI_API_KEY` | — | Google Gemini API key for AI analysis |
+| `MEDVAULT_STATIC_DIR` | `frontend/dist` | Path to built frontend (for Docker) |
+| `MEDVAULT_PRELOAD_GPU` | `1` | Set to `0` to disable GPU model preloading at startup |
+| `QWEN_MODEL_PATH` | — | Path to Qwen2.5-VL GGUF model file (if using llama.cpp server) |
+| `QWEN_SERVER_URL` | `http://127.0.0.1:8002/v1/chat/completions` | Qwen-VL server endpoint |
+
+---
+
+## Architecture
+
+```
+medvault/
+├── backend/
+│   ├── main.py                  # FastAPI app — pipeline endpoints, SQLite DB
+│   ├── document_classifier.py   # 3-class classifier (TABLE/HANDWRITTEN/PRINTED_TEXT)
+│   ├── paddle_ocr_provider.py   # PaddleOCR (printed + PP-Structure for tables)
+│   ├── qwen_vl_provider.py      # Qwen2.5-VL (handwritten)
+│   ├── gpu_manager.py           # GPU preload manager
+│   ├── agents/                   # Pipeline agents (classification, OCR, extraction, diagnosis)
+│   ├── routes/                   # FastAPI route modules
+│   ├── services/                 # Business logic services
+│   ├── weights/                  # Trained CNN classifier weights
+│   └── requirements.txt
+├── frontend/
+│   └── src/
+│       ├── App.tsx               # Router + theme + navigation
+│       ├── api.ts                # API client
+│       ├── pages/                # Page components
+│       └── components/           # Shared components
+├── scripts/                      # Training, evaluation, tuning scripts
+├── tests/                        # pytest test suite
+├── PLAN/                         # Historical planning documents
+├── Dockerfile
+├── start.ps1
+└── README.md
+```
+
+---
+
+## Document Classification Pipeline
+
+The pipeline automatically classifies incoming documents:
+
+| Document Type | OCR Engine | Notes |
+|---------------|------------|-------|
+| **TABLE** | PaddleOCR PP-Structure | Grid/table detection |
+| **PRINTED_TEXT** | PaddleOCR | Standard printed text OCR |
+| **HANDWRITTEN** | Qwen2.5-VL | Vision-language model |
+
+The classifier uses an ensemble of CNN (MobileNetV3) + heuristic features, achieving **77.4% accuracy** on the 93-image labeled dataset.
+
+---
+
+## API Overview
+
+```
+POST   /api/patient/register        # Patient registration
+POST   /api/patient/login           # Patient login
+POST   /api/patient/upload          # Upload medical report (triggers pipeline)
+GET    /api/doctor/patients          # List all patients
+POST   /api/doctor/analyze           # Run OCR + AI analysis
+GET    /api/gpu/status               # GPU model preload status
+POST   /api/gpu/preload              # Trigger GPU model preload
+GET    /api/providers/engines        # List available OCR/AI engines
+...and 50+ more
+```
+
+---
+
+## Tech Stack
+
+- **Backend:** Python 3.12, FastAPI, SQLite (WAL mode), PaddleOCR 2.8.1, Qwen2.5-VL
+- **Frontend:** React 19, TypeScript, Vite 6
+- **Design:** Custom neumorphic CSS (dark/light mode, responsive)
+- **Auth:** PBKDF2 password hashing, JWT tokens
+- **GPU:** CUDA 12.x, PaddlePaddle 3.3.1, torch 2.7.1+cu128
+
+---
 
 ## Docker
 
@@ -38,113 +170,7 @@ docker run -p 8000:8000 medvault
 
 Open **http://localhost:8000**
 
-## Architecture
-
-```
-medvault/
-├── backend/
-│   ├── main.py          # FastAPI app — 55+ endpoints, SQLite, pluggable providers
-│   └── requirements.txt
-├── frontend/
-│   └── src/
-│       ├── App.tsx       # Router + theme + navigation
-│       ├── api.ts        # API client (all endpoints)
-│       ├── styles.css    # Neumorphic design system
-│       ├── pages/        # 21 feature modules
-│       └── components/   # Shared components (icons, charts)
-├── Dockerfile
-├── start.sh
-└── README.md
-```
-
-## Modules (21)
-
-### Clinical (fully wired — backend + frontend)
-| Module | Description |
-|--------|-------------|
-| **Patient Portal** | Registration, login, report upload, medical profile |
-| **Doctor Portal** | Patient list, OCR analysis pipeline, report viewer |
-| **Patient Chart** | 11-tab chart: vitals, meds, Rx, SOAP notes, labs, appointments, ICD-10, referrals, billing, insurance |
-| **Dashboard** | Analytics overview, stats grid, recent patients/appointments |
-| **Drug Interactions** | Multi-drug interaction checker with severity levels, seeded database |
-| **Messages** | Secure doctor-patient messaging with read/unread tracking |
-| **Audit Log** | Complete system activity trail for compliance |
-| **Settings** | OCR & AI provider configuration (pluggable engine system) |
-
-### Research & Specialty (frontend — mock data)
-| Module | Description |
-|--------|-------------|
-| **Medical Imaging** | DICOM-style viewer, annotations, window/level presets, comparison mode |
-| **Telemedicine** | Video consultation flow, in-call chat, post-visit summaries |
-| **Rx Refills** | Refill queue, e-prescribe, pharmacy directory, controlled substance tracking |
-| **Genomics** | Pharmacogenomics, genetic risk factors, ancestry, family pedigree |
-| **Clinical Trials** | Trial matching, eligibility checking, enrollment workflow, adverse events |
-| **Vitals Monitor** | Real-time multi-patient monitoring with animated ECG waveforms |
-| **Lab Interpretation** | AI-powered lab result interpretation with 8 panel types |
-| **Research Pipeline** | Experiment manager, dataset browser, AI analysis workbench |
-| **OCR Workbench** | Multi-engine OCR comparison, pipeline builder, template library |
-| **Advanced Analytics** | Population health, trends, quality metrics |
-| **Consent Forms** | 8 digital consent templates with electronic signature |
-| **Patient Education** | Evidence-based health articles across 5 categories |
-
-## Pluggable Provider System
-
-MedVault supports swappable OCR and AI engines:
-
-**OCR Engines:** PyMuPDF (built-in), Tesseract, Custom HTTP endpoint
-**AI Engines:** Google Gemini, OpenAI, Ollama (local), Custom OpenAI-compatible
-
-Configure via Settings page or API:
-
-```bash
-# List available engines
-curl http://localhost:8000/api/providers/engines
-
-# Add a provider
-curl -X POST http://localhost:8000/api/providers \
-  -H "Content-Type: application/json" \
-  -d '{"kind":"ai","name":"My GPT","engine":"openai","config":{"api_key":"sk-..."}}'
-```
-
-## API Overview (55+ endpoints)
-
-```
-POST   /api/patient/register        # Patient registration
-POST   /api/patient/login           # Patient login
-POST   /api/patient/upload          # Upload medical report
-GET    /api/doctor/patients          # List all patients
-POST   /api/doctor/analyze           # Run OCR + AI analysis
-GET    /api/patient/{id}/vitals      # Vitals history
-POST   /api/vitals                   # Record vital signs
-GET    /api/patient/{id}/prescriptions
-POST   /api/prescriptions            # Create prescription
-GET    /api/patient/{id}/notes       # SOAP clinical notes
-POST   /api/notes                    # Create clinical note
-GET    /api/appointments             # List appointments
-GET    /api/drug-interactions/check?drugs=Warfarin,Aspirin
-GET    /api/icd10?q=hyper            # ICD-10 code search
-GET    /api/patient/{id}/fhir        # FHIR R4 Bundle export
-GET    /api/patient/{id}/export      # Full data export
-GET    /api/analytics                # Dashboard analytics
-GET    /api/audit-log                # Audit trail
-...and 35+ more
-```
-
-## Tech Stack
-
-- **Backend:** Python, FastAPI, SQLite (WAL mode), PyMuPDF, python-jose (JWT)
-- **Frontend:** React 19, TypeScript, Vite 6
-- **Design:** Custom neumorphic CSS (dark/light mode, responsive)
-- **Auth:** PBKDF2 password hashing, JWT tokens
-- **Standards:** FHIR R4 export, ICD-10 codes, SOAP notes format
-
-## Environment Variables
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `JWT_SECRET` | `dev-secret-change-me` | JWT signing key (change in production!) |
-| `GEMINI_API_KEY` | — | Google Gemini API key for AI analysis |
-| `MEDVAULT_STATIC_DIR` | `frontend/dist` | Path to built frontend (for Docker) |
+---
 
 ## Contributing
 
