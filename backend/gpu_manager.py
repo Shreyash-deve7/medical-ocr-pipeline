@@ -96,7 +96,7 @@ def _preload_paddle() -> None:
     """Eagerly initialise the PaddleOCR singleton and verify GPU usage."""
     global _paddle_loaded, _paddle_error, _paddle_using_gpu
     try:
-        import paddle_ocr_provider as pop
+        import backend.ocr.providers.paddle_provider as pop
         pop._verify_gpu()
         pop._get_ocr(use_gpu=True)
         # Re-check after init
@@ -118,7 +118,7 @@ def _preload_qwen() -> None:
     """
     global _qwen_loaded, _qwen_error
     try:
-        from qwen_vl_provider import QwenVLProvider, _get_model
+        from backend.ocr.providers.qwen_provider import QwenVLProvider, _get_model
         import torch
         dtype = torch.bfloat16
         _get_model("Qwen/Qwen2.5-VL-3B-Instruct", "cuda", dtype, load_in_4bit=True)

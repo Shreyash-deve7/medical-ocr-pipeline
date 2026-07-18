@@ -62,9 +62,8 @@ async def run_pipeline_endpoint(
         raise HTTPException(status_code=400, detail="Empty image file")
 
     # Lazy import keeps the router importable without loading OCR/agent deps.
-    from services.pipeline_service import run_pipeline
-
     try:
+        from services.pipeline_service import run_pipeline
         result = run_pipeline(
             content,
             evaluate=evaluate,

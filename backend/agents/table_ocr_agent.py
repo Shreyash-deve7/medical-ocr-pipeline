@@ -77,14 +77,14 @@ class TableOCRAgent:
     @property
     def pp_provider(self):
         if self._pp_provider is None:
-            from paddle_ocr_provider import PaddleOCRProvider
+            from backend.ocr.providers.paddle_provider import PaddleOCRProvider
             self._pp_provider = PaddleOCRProvider()
         return self._pp_provider
 
     @property
     def paddle_provider(self):
         if self._paddle_provider is None:
-            from paddle_ocr_provider import PaddleOCRProvider
+            from backend.ocr.providers.paddle_provider import PaddleOCRProvider
             self._paddle_provider = PaddleOCRProvider()
         return self._paddle_provider
 
@@ -113,7 +113,7 @@ class TableOCRAgent:
                 logger.warning("PP-Structure path failed, falling back: {}", e)
 
             # ── Fallback: basic PaddleOCR + heuristic row grouping ─────────────
-            from paddle_ocr_provider import run_paddle_ocr_on_document
+            from backend.ocr.providers.paddle_provider import run_paddle_ocr_on_document
             lines = run_paddle_ocr_on_document(
                 tmp, use_gpu=self.paddle_provider.use_gpu,
                 lang=self.paddle_provider.lang,

@@ -1,185 +1,113 @@
-# MedVault — Medical OCR Pipeline
+# SDLC loop simulator (NVIDIA NIM edition)
 
-A modular medical document OCR pipeline that classifies documents (TABLE / HANDWRITTEN / PRINTED_TEXT) and routes them to the appropriate OCR engine, with LLM-powered structured extraction and a Hepatology knowledge base.
+Runs the same orchestrator → coder → reviewer loop as the Claude Code
+subagent setup, but on top of the NVIDIA NIM OpenAI-compatible API instead
+of Claude Code itself. Reuses your existing `.claude/agents/orchestrator.md`,
+`coder.md`, and `reviewer.md` files unmodified — it parses their frontmatter
+and system prompts directly.
 
-Built with FastAPI + React + TypeScript + SQLite.
+## What's different from real Claude Code subagents
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Python](https://img.shields.io/badge/python-3.12-blue.svg)
-![React](https://img.shields.io/badge/react-19-61dafb.svg)
+- **No `Agent` tool.** The orchestrator can't spawn coder/reviewer itself —
+  this script does that in Python instead. The orchestrator's job each turn
+  is just to decide *what* the next coder task is, using a small text
+  protocol (see below), and this script does the actual dispatch.
+- **No automatic skill preloading.** `reviewer.md`'s `skills:` frontmatter
+  (`code-reviewer`, `playwright-expert`) is ignored by this harness — Claude
+  Code's skill-loading mechanism doesn't exist here. If you want the
+  reviewer to follow those skills' checklists, paste their content into
+  `reviewer.md`'s system prompt body directly, or into the goal text.
+- **No persistent memory directory** — `memory: project` in the frontmatter
+  is likewise ignored. State only persists via whatever files the agents
+  write (e.g. `PLAN/sdlc_state.md`), same as any other file in your repo.
+- **Tool calling quality depends on the NIM model you pick.** Not every
+  model in NVIDIA's catalog supports function calling reliably. Models
+  documented to support it well as of writing: `meta/llama-3.3-70b-instruct`,
+  `meta/llama-3.1-70b-instruct`. Check https://build.nvidia.com for the
+  current catalog before relying on a specific model — it changes.
 
-## Prerequisites
-
-- **Python 3.12**
-- **Node.js 20+**
-- **NVIDIA GPU** (optional — for GPU acceleration; runs on CPU without it)
-- **Windows** (PowerShell) or **macOS/Linux** (bash)
-
-## Quick Start
-
-### 1. Clone the repo
-
-```bash
-git clone https://github.com/aditya0si/pipeline_ocr.git
-cd pipeline_ocr
-```
-
-### 2. Run the setup script
-
-```powershell
-# Windows
-.\start.ps1
-```
+## Setup
 
 ```bash
-# macOS / Linux
-chmod +x start.sh
-./start.sh
+cd sdlc_sim
+pip install -r requirements.txt
+cp .env.example .env
+# edit .env, paste your nvapi-... key
 ```
 
-This will:
-- Create a Python virtual environment (`.venv/`)
-- Install backend dependencies (`backend/requirements.txt`)
-- Install frontend dependencies (`frontend/package.json`)
-- Start the backend on **http://localhost:8000**
-- Start the frontend on **http://localhost:5173**
+Make sure your actual project has the three agent files at
+`.claude/agents/orchestrator.md`, `coder.md`, `reviewer.md` (the ones you
+already placed).
 
-Open **http://localhost:5173** in your browser.
-
----
-
-## Manual Setup
-
-### Backend
+## Run it
 
 ```bash
-python -m venv .venv
-.venv\Scripts\pip install -r backend\requirements.txt
-
-# Optional: install GPU support for PaddleOCR (RTX 5060 / sm_120)
-# Download from: https://paddle-whl.bj.bcebos.com/stable/cu129/paddlepaddle-gpu/paddlepaddle_gpu-3.3.1-cp312-cp312-win_amd64.whl
-# Then: .venv\Scripts\pip install paddlepaddle_gpu-3.3.1-cp312-cp312-win_amd64.whl
-
-# Optional: install bitsandbytes for Qwen-VL 4-bit quantization
-.venv\Scripts\pip install bitsandbytes>=0.46.1
-
-# Start backend
-.venv\Scripts\uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
+python run_sdlc.py \
+  --agents-dir /path/to/your/project/.claude/agents \
+  --project-root /path/to/your/project \
+  --goal-file /path/to/MedVault_Pipeline_Architecture_Proposal.md \
+  --orchestrator-model meta/llama-3.3-70b-instruct \
+  --coder-model meta/llama-3.3-70b-instruct \
+  --reviewer-model meta/llama-3.3-70b-instruct
 ```
 
-### Frontend
+Or with a plain string goal instead of a file:
 
 ```bash
-cd frontend
-npm install
-npm run dev
+python run_sdlc.py --goal "Add the GPU executor pattern to gpu_manager.py" \
+  --project-root /path/to/your/project
 ```
 
----
+`--project-root` is the sandbox boundary for the coder/reviewer's file
+tools (`read_file`/`write_file`/`edit_file`/`grep_files`/`glob_files` all
+resolve paths relative to it, and refuse to escape it). `run_bash` runs
+inside that directory too, though as noted in `tools.py`, bash itself can
+still reach outside it — this is a simulation harness, not a sandbox, so
+only point it at a project you trust the model with.
 
-## Environment Variables
+## How the loop works
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `JWT_SECRET` | `dev-secret-change-me` | JWT signing key (change in production!) |
-| `GEMINI_API_KEY` | — | Google Gemini API key for AI analysis |
-| `MEDVAULT_STATIC_DIR` | `frontend/dist` | Path to built frontend (for Docker) |
-| `MEDVAULT_PRELOAD_GPU` | `1` | Set to `0` to disable GPU model preloading at startup |
-| `QWEN_MODEL_PATH` | — | Path to Qwen2.5-VL GGUF model file (if using llama.cpp server) |
-| `QWEN_SERVER_URL` | `http://127.0.0.1:8002/v1/chat/completions` | Qwen-VL server endpoint |
+1. **Orchestrator turn** — gets the goal + the last reviewer report (or
+   "none yet" on turn one), decides the next step, and must respond with
+   exactly one of:
+   - a ` ```task ` fenced block with instructions for the coder
+   - `<ALL_DONE/>` if everything's finished
+   - `<ASK_USER>question</ASK_USER>` if it needs your input — the script
+     will prompt you on the terminal and feed your answer back in
+2. **Coder turn** — fresh conversation, gets only the task text, has
+   Read/Write/Edit/Bash/Grep/Glob per its frontmatter, implements it, and
+   reports back.
+3. **Reviewer turn** — fresh conversation, gets the task instructions +
+   the coder's report, has Read/Grep/Glob/Bash (no Write/Edit — enforced
+   by `tools.resolve_tools`, not just by the prompt), and must end its
+   reply with `VERDICT: PASS`, `VERDICT: CONDITIONAL`, or `VERDICT: FAIL`.
+4. Verdict feeds back into the orchestrator's next turn. `PASS` → next
+   task. `FAIL`/`CONDITIONAL` → orchestrator re-instructs the coder on the
+   same task. Three failed reviews in a row on the same task stops the run
+   so you can look at it, rather than looping forever.
 
----
+## Before you point it at a real project
 
-## Architecture
+Run `python test_smoke.py` first — it uses a scripted fake client (no
+network calls, no API credits spent) to verify your three `.md` files
+parse correctly, tool permissions resolve the way you expect (e.g. the
+reviewer genuinely can't call `write_file`), and the task/verdict/done
+parsing logic works, before you spend NIM credits on a live run.
 
-```
-medvault/
-├── backend/
-│   ├── main.py                  # FastAPI app — pipeline endpoints, SQLite DB
-│   ├── document_classifier.py   # 3-class classifier (TABLE/HANDWRITTEN/PRINTED_TEXT)
-│   ├── paddle_ocr_provider.py   # PaddleOCR (printed + PP-Structure for tables)
-│   ├── qwen_vl_provider.py      # Qwen2.5-VL (handwritten)
-│   ├── gpu_manager.py           # GPU preload manager
-│   ├── agents/                   # Pipeline agents (classification, OCR, extraction, diagnosis)
-│   ├── routes/                   # FastAPI route modules
-│   ├── services/                 # Business logic services
-│   ├── weights/                  # Trained CNN classifier weights
-│   └── requirements.txt
-├── frontend/
-│   └── src/
-│       ├── App.tsx               # Router + theme + navigation
-│       ├── api.ts                # API client
-│       ├── pages/                # Page components
-│       └── components/           # Shared components
-├── scripts/                      # Training, evaluation, tuning scripts
-├── tests/                        # pytest test suite
-├── PLAN/                         # Historical planning documents
-├── Dockerfile
-├── start.ps1
-└── README.md
-```
+## Known rough edges to watch for
 
----
-
-## Document Classification Pipeline
-
-The pipeline automatically classifies incoming documents:
-
-| Document Type | OCR Engine | Notes |
-|---------------|------------|-------|
-| **TABLE** | PaddleOCR PP-Structure | Grid/table detection |
-| **PRINTED_TEXT** | PaddleOCR | Standard printed text OCR |
-| **HANDWRITTEN** | Qwen2.5-VL | Vision-language model |
-
-The classifier uses an ensemble of CNN (MobileNetV3) + heuristic features, achieving **77.4% accuracy** on the 93-image labeled dataset.
-
----
-
-## API Overview
-
-```
-POST   /api/patient/register        # Patient registration
-POST   /api/patient/login           # Patient login
-POST   /api/patient/upload          # Upload medical report (triggers pipeline)
-GET    /api/doctor/patients          # List all patients
-POST   /api/doctor/analyze           # Run OCR + AI analysis
-GET    /api/gpu/status               # GPU model preload status
-POST   /api/gpu/preload              # Trigger GPU model preload
-GET    /api/providers/engines        # List available OCR/AI engines
-...and 50+ more
-```
-
----
-
-## Tech Stack
-
-- **Backend:** Python 3.12, FastAPI, SQLite (WAL mode), PaddleOCR 2.8.1, Qwen2.5-VL
-- **Frontend:** React 19, TypeScript, Vite 6
-- **Design:** Custom neumorphic CSS (dark/light mode, responsive)
-- **Auth:** PBKDF2 password hashing, JWT tokens
-- **GPU:** CUDA 12.x, PaddlePaddle 3.3.1, torch 2.7.1+cu128
-
----
-
-## Docker
-
-```bash
-docker build -t medvault .
-docker run -p 8000:8000 medvault
-```
-
-Open **http://localhost:8000**
-
----
-
-## Contributing
-
-1. Fork the repo
-2. Create a feature branch (`git checkout -b feat/my-feature`)
-3. Commit (`git commit -m "feat: add my feature"`)
-4. Push (`git push origin feat/my-feature`)
-5. Open a Pull Request
-
-## License
-
-MIT — see [LICENSE](LICENSE)
+- **Small/instruction-light models will drift from the text protocol.**
+  If the orchestrator stops reliably emitting ` ```task ` blocks or
+  `<ALL_DONE/>`, the script falls back to treating its whole reply as the
+  task (with a warning printed) — check the output when you see that
+  warning, it usually means the model needs a stronger system-prompt nudge
+  or a swap to a more capable model for that role specifically.
+- **`edit_file` requires an exact, unique match**, same restriction as
+  Claude Code's real `Edit` tool. If the coder's `old_str` doesn't match
+  verbatim (whitespace included), it gets an error back and has to retry
+  with more context — that's intentional, not a bug, but weaker models may
+  need a few attempts.
+- **No conversation memory between spawns**, by design — if the coder needs
+  context from a previous task, the orchestrator has to explicitly restate
+  it in the next task block, same rule as in `orchestrator.md`'s own
+  instructions.

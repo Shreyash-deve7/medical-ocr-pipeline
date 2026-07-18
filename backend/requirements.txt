@@ -1,3 +1,14 @@
+# ============================================================================
+# ENVIRONMENT REQUIREMENT: Python 3.12 ONLY
+# ============================================================================
+# This project strictly requires Python 3.12 because the PaddlePaddle CUDA 12.9
+# GPU wheel is only available for CPython 3.12 on Windows:
+#   paddlepaddle_gpu-3.3.1-cp312-cp312-win_amd64.whl
+#
+# Using any other Python version (e.g., 3.11, 3.13, 3.14) will result in
+# wheel incompatibility errors and the OCR stage will fail to load PaddlePaddle
+# on the GPU. Please ensure your virtual environment is created with Python 3.12.
+# ============================================================================
 fastapi==0.115.0
 uvicorn==0.30.6
 python-multipart==0.0.9
@@ -33,12 +44,17 @@ lxml>=5.0.0
 # FALLBACK path (slower on this GPU, ~26s): in-process torch transformers
 # (pipeline_v1/backend/qwen_vl_server.py). Requires a CUDA 12.8+ torch build:
 #   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
-torch==2.7.1+cu128
-torchvision==0.22.1+cu128
+torch
+torchvision
 transformers>=4.51
 qwen-vl-utils
 accelerate
-# llama-cpp-python==0.3.33
+bitsandbytes>=0.46.1
+
+# PDF parsing (used by ai_service.py for doctor analysis feature)
+PyMuPDF>=1.23.0
+
 # --- Session 7: Evaluation + coverage ---
 jiwer>=3.0.0
 pytest-cov>=4.1.0
+

@@ -1,25 +1,19 @@
 """
-unit_normaliser.py — SI unit standardisation + micro-sign (µ) encoding fix.
+unit_normaliser.py — Backward-compatibility re-export.
 
-The known tech-debt item "µ encoding broken in structured output" means the
-micro sign appears in several broken forms in OCR output:
+New code should import from ``backend.extraction.unit_normaliser`` directly::
 
-    "umol/L"        (ASCII u)
-    "μmol/L"        (Greek small mu U+03BC)
-    "Âµmol/L"       (latin-1 / UTF-8 double-encode mojibake)
-    "µmol/L"        (correct MICRO SIGN U+00B5)
+    from backend.extraction.unit_normaliser import normalise_unit, normalise_value
 
-All of these must round-trip to the canonical ``µmol/L`` (U+00B5).
-
-The normaliser also canonicalises case / spacing for common SI units so the
-Pydantic ``unit`` strings stay consistent across engines (mg/dL not mg/dl,
-U/L not u/l, etc.).
+This file is kept only to avoid breaking existing import paths.
 """
+# For backward compatibility; new code should import from backend.extraction.unit_normaliser
 import re
 from typing import Tuple
 
+from backend.extraction.unit_normaliser import normalise_unit, normalise_value
 
-# Canonical micro sign (U+00B5 MICRO SIGN).
+__all__ = ["normalise_unit", "normalise_value"]
 _MICRO = "µ"
 
 # Variants of the micro prefix that should all collapse to "µmol/L".

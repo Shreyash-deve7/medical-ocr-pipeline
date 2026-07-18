@@ -14,7 +14,6 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Optional
 
-import fitz  # PyMuPDF
 from fastapi import HTTPException
 
 
@@ -126,6 +125,7 @@ def build_ai(engine: str, config: dict) -> AIProvider:
 def _extract_images(filepath: str, filetype: str) -> list[bytes]:
     if filetype == "image":
         return [Path(filepath).read_bytes()]
+    import fitz  # PyMuPDF
     doc = fitz.open(filepath)
     images = [page.get_pixmap(dpi=200).tobytes("png") for page in doc]
     doc.close()

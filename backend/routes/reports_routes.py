@@ -10,6 +10,7 @@ Extracted verbatim from ``main.py``:
 from __future__ import annotations
 
 import json
+import threading
 import traceback
 import uuid
 from datetime import datetime, timezone
@@ -94,10 +95,13 @@ async def upload_report(token: str = Form(...), file: UploadFile = File(...), bg
         finally:
             conn.close()
         
-        # Kick off automatic OCR in the background (printed→PaddleOCR, handwritten→Qwen-VL)
-        if bg:
-            from services.pipeline_service import process_report_automatic
-            bg.add_task(process_report_automatic, rid)
+        # Kick off automatic OCR in a daemon thread (printed→PaddleOCR,
+        # handwritten→Qwen-VL).  We deliberately use a bare thread instead of
+        # FastAPI's BackgroundTasks so the heavy synchronous OCR work does not
+        # block the ASGI worker thread (which starves subsequent requests and
+        # causes "Failed to fetch" in the frontend).
+        from services.pipeline_service import process_report_automatic
+        threading.Thread(target=process_report_automatic, args=(rid,), daemon=True).start()
         
         return {"report_id": rid, "filename": file.filename}
     
@@ -226,10 +230,12 @@ def ocr_structured_report(req: StructuredOCRReq):
 
 def _default_patient_id() -> str:
     """Return the seeded default patient id, raising a clear error if missing."""
-    from main import DEFAULT_PATIENT_ID
-    if not DEFAULT_PATIENT_ID:
+    import main as _main
+    pid = _main.DEFAULT_PATIENT_ID
+    if not pid:
         raise HTTPException(500, "Default patient not seeded yet")
-    return DEFAULT_PATIENT_ID
+    return pid
+
 
 
 @router.post("/api/test/upload")
@@ -271,9 +277,13 @@ async def test_upload_report(file: UploadFile = File(...), bg: BackgroundTasks =
         finally:
             conn.close()
 
-        if bg:
-            from services.pipeline_service import process_report_automatic
-            bg.add_task(process_report_automatic, rid)
+        # Kick off automatic OCR in a daemon thread (printed→PaddleOCR,
+        # handwritten→Qwen-VL).  We deliberately use a bare thread instead of
+        # FastAPI's BackgroundTasks so the heavy synchronous OCR work does not
+        # block the ASGI worker thread (which starves subsequent requests and
+        # causes "Failed to fetch" in the frontend).
+        from services.pipeline_service import process_report_automatic
+        threading.Thread(target=process_report_automatic, args=(rid,), daemon=True).start()
 
         return {"report_id": rid, "filename": file.filename}
 

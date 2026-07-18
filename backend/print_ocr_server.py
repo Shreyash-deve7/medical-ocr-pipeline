@@ -22,7 +22,7 @@ from pathlib import Path
 from fastapi import FastAPI, File, UploadFile
 from fastapi.responses import JSONResponse
 
-from paddle_ocr_provider import (
+from backend.ocr.providers.paddle_provider import (
     run_paddle_ocr_on_document,
     summarize_lines,
     warmup,

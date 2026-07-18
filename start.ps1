@@ -24,7 +24,7 @@ Write-Host ""
 
 $backend = Start-Process -NoNewWindow -FilePath "powershell.exe" -ArgumentList "-Command", ".venv\Scripts\uvicorn.exe backend.main:app --host 0.0.0.0 --port 8000 --reload" -PassThru
 Set-Location frontend
-$frontend = Start-Process -NoNewWindow -FilePath "powershell.exe" -ArgumentList "-Command", "npx vite --port 5173" -PassThru
+$frontend = Start-Process -NoNewWindow -FilePath "npx.cmd" -ArgumentList "vite --port 5173" -PassThru
 Set-Location ..
 
 try {

@@ -34,6 +34,7 @@ export function PatientPortal({ onBack, notify }: Props) {
       notify(`${file.name} uploaded`);
       loadReports();
     } catch (e: any) {
+      setProgress(0);
       notify(e.message, "error");
     } finally {
       clearInterval(timer);

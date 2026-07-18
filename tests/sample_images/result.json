@@ -1,0 +1,70 @@
+{
+  "preprocessing": {
+    "transformations_applied": [
+      "denoise",
+      "clahe",
+      "normalize_dpi"
+    ],
+    "quality_metrics_before": {
+      "sharpness_laplacian_var": 1490.0,
+      "contrast_rms": 36.54,
+      "skew_angle_degrees": 0.0,
+      "resolution_dpi": 85,
+      "snr": 0.1468
+    },
+    "quality_metrics_after": {
+      "sharpness_laplacian_var": 244.71,
+      "contrast_rms": 31.91,
+      "skew_angle_degrees": 0.0,
+      "resolution_dpi": 85,
+      "snr": 0.1282
+    },
+    "image_path": "tests\\sample_images\\printed_1.png"
+  },
+  "classification": {
+    "confidence": 0.645814061164856,
+    "fallback_triggered": false,
+    "cnn_prediction": null,
+    "heuristic_prediction": null,
+    "class": "PRINTED_TEXT"
+  },
+  "ocr": {
+    "raw_output": "",
+    "engine": "none",
+    "confidence": 0.0,
+    "processing_time_seconds": 15.1773
+  },
+  "lab_report": {
+    "lab_results": [],
+    "document_metadata": null,
+    "pipeline_metadata": null
+  },
+  "diagnosis": {
+    "clinical_patterns": [],
+    "abnormal_values": [],
+    "urgent_flags": [],
+    "suggested_followup": [
+      "Correlate abnormal values with clinical context and repeat testing as indicated"
+    ],
+    "summary_for_doctor": "All reviewed laboratory values are within normal limits.",
+    "llm_narrative": null
+  },
+  "summary": null,
+  "evaluation": null,
+  "timing": {
+    "preprocess": 1566,
+    "classify": 8767,
+    "ocr": 15181,
+    "extract": 65,
+    "validate": 1,
+    "diagnose": 0,
+    "_total": 25582
+  },
+  "errors": {},
+  "metadata": {
+    "started_at": "2026-07-13T13:31:34.158303+00:00",
+    "completed_at": "2026-07-13T13:31:59.740906+00:00",
+    "image_path": "tests\\sample_images\\printed_1.png",
+    "doc_class": "PRINTED_TEXT"
+  }
+}

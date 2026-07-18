@@ -21,7 +21,7 @@ from agents.ocr_result import OCRResult
 from agents import ocr_router_agent
 from agents.ocr_router_agent import run_ocr, AGENT_FACTORIES
 from agents.table_ocr_agent import TableOCRAgent, _group_lines_into_rows
-from paddle_ocr_provider import html_to_table
+from backend.ocr.providers.paddle_provider import html_to_table
 
 
 # ── Fixtures ─────────────────────────────────────────────────────
@@ -162,7 +162,7 @@ def test_table_agent_falls_back_when_pp_structure_empty(monkeypatch):
         {"text": "78", "confidence": 0.88, "bbox": [[70, 10], [110, 10], [110, 30], [70, 30]]},
     ]
     monkeypatch.setattr(
-        "paddle_ocr_provider.run_paddle_ocr_on_document",
+        "backend.ocr.providers.paddle_provider.run_paddle_ocr_on_document",
         lambda *a, **k: fake_lines,
     )
     agent = TableOCRAgent(pp_provider=empty_provider)
@@ -176,7 +176,7 @@ def test_table_agent_falls_back_when_pp_structure_empty(monkeypatch):
 def test_table_agent_falls_back_on_pp_structure_error(monkeypatch):
     err_provider = _FakePPProvider(None, raise_on_call=True)
     monkeypatch.setattr(
-        "paddle_ocr_provider.run_paddle_ocr_on_document",
+        "backend.ocr.providers.paddle_provider.run_paddle_ocr_on_document",
         lambda *a, **k: [],
     )
     agent = TableOCRAgent(pp_provider=err_provider)

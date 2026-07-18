@@ -50,7 +50,7 @@ class ClassificationAgent:
     """Agent 2 — classify a preprocessed image into one of three document types."""
 
     def __init__(self, weights_path: str = None, llm_fallback: bool = True,
-                 confidence_threshold: float = 0.70, line_density_threshold: float = 0.3,
+                 confidence_threshold: float = 0.55, line_density_threshold: float = 0.3,
                  llm_client=None):
         """
         :param weights_path: optional path to 3-class MobileNetV3 weights.

@@ -35,7 +35,7 @@ class HandwrittenOCRAgent:
     @property
     def provider(self):
         if self._provider is None:
-            from qwen_vl_provider import QwenVLProvider
+            from backend.ocr.providers.qwen_provider import QwenVLProvider
             self._provider = QwenVLProvider()
         return self._provider
 

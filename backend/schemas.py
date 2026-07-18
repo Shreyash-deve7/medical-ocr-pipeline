@@ -1,24 +1,24 @@
-"""
-schemas.py — Pydantic v2 models for the MedVault Hepatology lab-report JSON.
+﻿"""
+schemas.py ΓÇö Pydantic v2 models for the MedVault Hepatology lab-report JSON.
 
 These mirror the IBM spec (pipeline_ibm.md Section 6.4) schema used by the
 ExtractionAgent (Agent 4) and ValidationAgent (Agent 5):
 
     LabReport
-      ├── lab_results: List[LabResult]
-      ├── document_metadata: Optional[dict]
-      └── pipeline_metadata:  Optional[dict]
+      Γö£ΓöÇΓöÇ lab_results: List[LabResult]
+      Γö£ΓöÇΓöÇ document_metadata: Optional[dict]
+      ΓööΓöÇΓöÇ pipeline_metadata:  Optional[dict]
 
     LabResult
-      ├── test_name, test_abbreviation?, value?, unit
-      ├── reference_range: ReferenceRange
-      ├── flag: Literal[HIGH|LOW|CRITICAL_HIGH|CRITICAL_LOW|NORMAL|UNKNOWN]
-      └── clinical_significance?
+      Γö£ΓöÇΓöÇ test_name, test_abbreviation?, value?, unit
+      Γö£ΓöÇΓöÇ reference_range: ReferenceRange
+      Γö£ΓöÇΓöÇ flag: Literal[HIGH|LOW|CRITICAL_HIGH|CRITICAL_LOW|NORMAL|UNKNOWN]
+      ΓööΓöÇΓöÇ clinical_significance?
 
 ``document_metadata`` and ``pipeline_metadata`` are optional so the
 extraction-only ``lab_results`` JSON (produced by the LLM prompt in
 reference.md Section E Agent 4) validates on its own while still honouring
-the full IBM §6.4 contract when present.
+the full IBM ┬º6.4 contract when present.
 """
 from typing import Any, Dict, List, Literal, Optional
 
@@ -53,14 +53,14 @@ class LabResult(BaseModel):
 
 
 class LabReport(BaseModel):
-    """Validated Hepatology lab report matching the IBM spec §6.4 schema."""
+    """Validated Hepatology lab report matching the IBM spec ┬º6.4 schema."""
 
     lab_results: List[LabResult]
     document_metadata: Optional[Dict[str, Any]] = None
     pipeline_metadata: Optional[Dict[str, Any]] = None
 
 
-# ── Diagnosis (Agent 6) models ───────────────────────────────────
+# ΓöÇΓöÇ Diagnosis (Agent 6) models ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 # Mirrors reference.md Section E Agent 6 JSON output contract.
 
 class ClinicalPattern(BaseModel):
@@ -96,7 +96,7 @@ class DiagnosisResult(BaseModel):
     llm_narrative: Optional[str] = None
 
 
-# ── Summary (Agent 8) models ─────────────────────────────────────
+# ΓöÇΓöÇ Summary (Agent 8) models ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 # Doctor-facing structured summary (reference.md Section E Agent 8).
 
 class SummaryResponse(BaseModel):
@@ -108,7 +108,7 @@ class SummaryResponse(BaseModel):
     discussion_points: List[str] = Field(default_factory=list)
 
 
-# ── REST API request models ─────────────────────────────────────
+# ΓöÇΓöÇ REST API request models ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 # Moved out of the old ``main.py`` monolith during Session 6. These describe the
 # JSON bodies accepted by the FastAPI routes in ``backend/routes/``. Kept here
 # (per reference.md Section F Session 6 target layout) rather than a separate

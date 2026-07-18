@@ -1,0 +1,27 @@
+[submodule "extern/preprocessing"]
+	path = extern/preprocessing
+	url = https://github.com/ibm-techlab-summer-internship/intern-ocr-imagepreprocessing-ishika.git
+[submodule "extern/ocr_table_paddle"]
+	path = extern/ocr_table_paddle
+	url = https://github.com/ibm-techlab-summer-internship/intern-ocr-paddleocr-aditya.git
+[submodule "extern/ocr_table_surya"]
+	path = extern/ocr_table_surya
+	url = https://github.com/ibm-techlab-summer-internship/intern-ocr-suryaocr-anshuman.git
+[submodule "extern/ocr_table_docling"]
+	path = extern/ocr_table_docling
+	url = https://github.com/ibm-techlab-summer-internship/intern-ocr-granite-docling.git
+[submodule "extern/ocr_handwritten_trocr"]
+	path = extern/ocr_handwritten_trocr
+	url = https://github.com/ibm-techlab-summer-internship/intern-ocr-trocr-aditi.git
+[submodule "extern/ocr_handwritten_surya"]
+	path = extern/ocr_handwritten_surya
+	url = https://github.com/ibm-techlab-summer-internship/intern-ocr-suryaocr-anshuman.git
+[submodule "extern/ocr_printed_tesseract"]
+	path = extern/ocr_printed_tesseract
+	url = https://github.com/ibm-techlab-summer-internship/intern-ocr-tesseract-sarika.git
+[submodule "extern/ocr_printed_easyocr"]
+	path = extern/ocr_printed_easyocr
+	url = https://github.com/ibm-techlab-summer-internship/intern-ocr-easyocr-ankit.git
+[submodule "extern/ocr_printed_olmocr"]
+	path = extern/ocr_printed_olmocr
+	url = https://github.com/ibm-techlab-summer-internship/intern-ocr-olmocr-devansh.git

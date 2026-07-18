@@ -110,7 +110,7 @@ def stage_classify():
 
 def stage_ocr_printed():
     sys.path.insert(0, str(BACKEND))
-    from paddle_ocr_provider import run_paddle_ocr_on_document, _verify_gpu
+    from backend.ocr.providers.paddle_provider import run_paddle_ocr_on_document, _verify_gpu
 
     gpu = _verify_gpu()
     print(f"[ocr-printed] use_gpu={gpu}")
@@ -150,7 +150,7 @@ def stage_ocr_printed():
 
 def stage_ocr_handwritten():
     sys.path.insert(0, str(BACKEND))
-    from qwen_vl_provider import QwenVLProvider
+    from backend.ocr.providers.qwen_provider import QwenVLProvider
 
     server_url = os.environ.get("QWEN_VL_SERVER_URL", "")
     print(f"[ocr-handwritten] server_url={server_url or '(in-process)'}")

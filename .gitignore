@@ -70,3 +70,15 @@ Desktop.ini
 # CUDA / GPU artifacts
 *.cupti*
 *.nvvp
+
+# Git submodule weights
+extern/**/weights/
+extern/**/*.pt
+extern/**/*.pth
+extern/**/*.onnx
+extern/**/*.pkl
+
+# Patient data
+Patient_Kastoor/
+WhatsApp Unknown 2026-04-27 at 12.10.10/
+

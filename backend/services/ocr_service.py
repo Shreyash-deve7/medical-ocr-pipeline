@@ -13,6 +13,7 @@ CPU-only safe.
 """
 from __future__ import annotations
 
+import os
 import threading
 from abc import ABC, abstractmethod
 from typing import Optional
@@ -38,7 +39,7 @@ class OCRProvider(ABC):
 class PaddleOCRProviderWrapper(OCRProvider):
     """MedVault wrapper around the PaddleOCR GPU backend for printed reports."""
     def __init__(self, use_gpu: bool = True, lang: str = "en", use_angle_cls: bool = True):
-        from paddle_ocr_provider import PaddleOCRProvider
+        from backend.ocr.providers.paddle_provider import PaddleOCRProvider
         self._provider = PaddleOCRProvider(use_gpu=use_gpu, lang=lang, use_angle_cls=use_angle_cls)
     def extract_text(self, filepath: str, filetype: str) -> str:  # pragma: no cover - GPU/OCR runtime
         return self._provider.extract_text(filepath, filetype)
@@ -52,12 +53,16 @@ class QwenVLProviderWrapper(OCRProvider):
     def __init__(self, model_id: str = "Qwen/Qwen2.5-VL-3B-Instruct", device: str = "",
                  torch_dtype: str = "bfloat16", server_url: str = "", max_pixels: int = 128 * 28 * 28,
                  load_in_4bit: bool = True):
-        from qwen_vl_provider import QwenVLProvider
+        from backend.ocr.providers.qwen_provider import QwenVLProvider
+        # Honour the microservice URL from the environment so the in-process torch
+        # path (which needs CUDA) is only taken when no GPU microservice is set.
+        env_url = os.environ.get("QWEN_VL_SERVER_URL", "") or ""
+        effective_url = server_url or env_url
         self._provider = QwenVLProvider(
             model_id=model_id,
             device=device or None,
             torch_dtype=torch_dtype,
-            server_url=server_url,
+            server_url=effective_url,
             max_pixels=max_pixels,
             load_in_4bit=load_in_4bit,
         )
@@ -132,13 +137,28 @@ def _get_qwen_wrapper(server_url: str = "", model_id: str = "Qwen/Qwen2.5-VL-3B-
 
 class AutoOCRProvider(OCRProvider):
     """
-    MedVault OCRProvider that auto-detects whether a document is 'printed' or
-    'handwritten' and routes it to the right backend.
+    MedVault OCRProvider that auto-detects whether a document is HANDWRITTEN,
+    PRINTED_TEXT or TABLE and routes it to the right backend.
 
-    Default: in-process GPU models (microservices optional via env vars)
-        printed     -> PaddleOCR in-process (GPU)  -- set PADDLE_ENDPOINT to use microservice
-        handwritten -> Qwen2.5-VL in-process (4-bit GPU) -- set QWEN_VL_SERVER_URL to use microservice
+    Routing policy (confidence-gated, see ``_classify``):
+        * HANDWRITTEN (only if the classifier is confident) -> Qwen2.5-VL.
+          When ``QWEN_VL_SERVER_URL`` is set, this runs as a GPU microservice
+          in a separate CUDA process (recommended — keeps torch-CUDA out of
+          this venv, which only has paddlepaddle-gpu). Otherwise it runs
+          in-process (requires torch with CUDA).
+        * TABLE       -> PaddleOCR PP-Structure on GPU.
+        * PRINTED_TEXT-> PaddleOCR on GPU.
+
+    Self-check + fallback: if the chosen engine returns empty / near-empty
+    text, the other engine is tried automatically (PaddleOCR <-> Qwen) so a
+    misclassification (e.g. a faint handwritten note sent to PaddleOCR) still
+    recovers instead of returning a blank report.
     """
+    # Below this confidence the classifier is treated as "uncertain" and the
+    # document is routed to PaddleOCR (which is robust for printed + tables and
+    # is the safe default). Only clearly handwritten docs take the Qwen path.
+    HANDWRITTEN_CONF_THRESHOLD = float(os.environ.get("HANDWRITTEN_CONF_THRESHOLD", "0.75"))
+
     def __init__(self, class_weights: str = "",
                  paddle_endpoint: str = "", paddle_use_gpu: bool = True,
                  paddle_lang: str = "en", paddle_use_angle_cls: bool = True,
@@ -148,39 +168,68 @@ class AutoOCRProvider(OCRProvider):
         self._classifier = _get_classifier(class_weights)
         self._paddle_endpoint = paddle_endpoint
         self._paddle_cfg = dict(use_gpu=paddle_use_gpu, lang=paddle_lang, use_angle_cls=paddle_use_angle_cls)
-        self._qwen_server_url = qwen_server_url or ""
+        # Prefer the microservice URL from the environment (true GPU path in a
+        # separate CUDA process). Defaults to in-process if unset.
+        self._qwen_server_url = qwen_server_url or os.environ.get("QWEN_VL_SERVER_URL", "") or ""
         self._qwen_cfg = dict(model_id=qwen_model_id, device=qwen_device or "", torch_dtype=qwen_torch_dtype,
                               server_url=self._qwen_server_url, max_pixels=qwen_max_pixels,
                               load_in_4bit=qwen_load_in_4bit)
         self.last_doc_type: str = "printed"
+        self.last_confidence: float = 0.0
+
+    # ── classification (confidence-gated) ──────────────────────────────────
+    def _classify(self, filepath: str, filetype: str) -> tuple:
+        """Return (doc_type, confidence) using the 3-class classifier.
+
+        Confidence-gated: a HANDWRITTEN prediction below
+        ``HANDWRITTEN_CONF_THRESHOLD`` is downgraded to PRINTED_TEXT, because
+        PaddleOCR is the safe, GPU-backed default and the Qwen (handwritten)
+        path is the expensive/specialised one.
+        """
+        img = _first_page_cv2(filepath, filetype)
+        res = self._classifier.predict_3class(img)
+        doc_type = res.doc_class
+        conf = float(getattr(res, "confidence", 0.0) or 0.0)
+        self.last_confidence = conf
+        if doc_type == "HANDWRITTEN" and conf < self.HANDWRITTEN_CONF_THRESHOLD:
+            logger.info(
+                "Handwritten confidence %.2f < %.2f; routing to PaddleOCR (PRINTED_TEXT) instead",
+                conf, self.HANDWRITTEN_CONF_THRESHOLD,
+            )
+            return "PRINTED_TEXT", conf
+        return doc_type, conf
+
+    def _build_qwen(self):
+        if self._qwen_server_url:
+            return QwenVLProviderWrapper(server_url=self._qwen_server_url)
+        return _get_qwen_wrapper(**self._qwen_cfg)
 
     def _route(self, filepath: str, filetype: str) -> tuple:
-        if hasattr(self, "last_doc_type") and hasattr(self, "last_provider") and self.last_provider is not None:
+        if getattr(self, "last_provider", None) is not None:
             return self.last_doc_type, self.last_provider
 
-        img = _first_page_cv2(filepath, filetype)
-        doc_type = self._classifier.predict_3class(img).doc_class
+        doc_type, _ = self._classify(filepath, filetype)
         self.last_doc_type = doc_type
 
         if doc_type == "HANDWRITTEN":
-            if self._qwen_server_url:
-                self.last_provider = QwenVLProviderWrapper(server_url=self._qwen_server_url)
-            else:
-                self.last_provider = _get_qwen_wrapper(**self._qwen_cfg)
+            # Qwen2.5-VL (GPU microservice when QWEN_VL_SERVER_URL is set).
+            self.last_provider = self._build_qwen()
             return "HANDWRITTEN", self.last_provider
 
-        # TABLE or PRINTED_TEXT -> PaddleOCR (PP-Structure for TABLE added in Session 3)
+        # TABLE or PRINTED_TEXT -> PaddleOCR (PP-Structure for TABLE).
         paddle = _get_paddle_wrapper(**self._paddle_cfg)
         if paddle is not None:
             self.last_provider = paddle
             return doc_type, self.last_provider
         # PaddleOCR unavailable; fall back to Qwen for printed/table docs.
         logger.warning("PaddleOCR unavailable for doc_type={}; falling back to Qwen-VL", doc_type)
-        if self._qwen_server_url:
-            self.last_provider = QwenVLProviderWrapper(server_url=self._qwen_server_url)
-        else:
-            self.last_provider = _get_qwen_wrapper(**self._qwen_cfg)
+        self.last_provider = self._build_qwen()
         return doc_type, self.last_provider
+
+    @staticmethod
+    def _is_empty(text: str) -> bool:
+        """True when OCR produced no usable content (blank / whitespace only)."""
+        return not (text or "").strip()
 
     def extract_text(self, filepath: str, filetype: str) -> str:  # pragma: no cover - GPU/OCR runtime
         # Reset cache on new extraction
@@ -192,50 +241,49 @@ class AutoOCRProvider(OCRProvider):
         except Exception as e:  # noqa: BLE001 - fall back on any OCR failure
             text = ""
             err = e
-        # Vision model (Qwen-VL) misconfigured / text-only / no GPU, OR it returned
-        # an error string instead of transcription: fall back to PaddleOCR so a
-        # (likely printed) report still OCRs instead of crashing.
-        if doc_type in ("HANDWRITTEN", "handwritten") and (err is not None or _looks_like_vision_error(text)):
-            if err is not None:
-                logger.warning("Handwritten OCR failed ({}); falling back to PaddleOCR", err)
+
+        # Self-check: if the primary engine returned nothing (or a vision error
+        # string from a misconfigured Qwen endpoint), try the other engine.
+        if self._is_empty(text) or _looks_like_vision_error(text):
+            other = "PaddleOCR" if doc_type == "HANDWRITTEN" else "Qwen-VL"
+            logger.warning(
+                "Primary OCR (%s) %s for %s; trying %s",
+                doc_type, "errored" if err else "returned empty", filepath, other,
+            )
+            if doc_type == "HANDWRITTEN":
+                self.last_doc_type = "PRINTED_TEXT"
+                paddle = _get_paddle_wrapper(**self._paddle_cfg)
+                self.last_provider = paddle
+                if paddle is not None:
+                    return paddle.extract_text(filepath, filetype)
             else:
-                logger.warning("Handwritten OCR returned a vision error; falling back to PaddleOCR")
-            self.last_doc_type = "PRINTED_TEXT"
-            paddle = _get_paddle_wrapper(**self._paddle_cfg)
-            self.last_provider = paddle
-            if paddle is not None:
-                return paddle.extract_text(filepath, filetype)
-            raise err or RuntimeError("Handwritten OCR failed and PaddleOCR fallback unavailable")
-        if err is not None:
-            raise err
-        return text
-    def _fallback_to_qwen(self, filepath: str, filetype: str, doc_type: str) -> str:
-        """Fallback OCR using Qwen-VL when PaddleOCR fails for printed/table docs."""
-        logger.warning("Falling back to Qwen-VL for doc_type={}", doc_type)
-        qwen = _get_qwen_wrapper(
-            server_url=self._qwen_server_url,
-            model_id=self._qwen_cfg.get("model_id", "Qwen/Qwen2.5-VL-3B-Instruct"),
-            device=self._qwen_cfg.get("device", ""),
-            torch_dtype=self._qwen_cfg.get("torch_dtype", "bfloat16"),
-            max_pixels=self._qwen_cfg.get("max_pixels", 128 * 28 * 28),
-            load_in_4bit=self._qwen_cfg.get("load_in_4bit", True),
-        )
-        self.last_doc_type = doc_type
-        self.last_provider = qwen
-        return qwen.extract_text(filepath, filetype)
+                qwen = self._build_qwen()
+                self.last_provider = qwen
+                if qwen is not None:
+                    try:
+                        return qwen.extract_text(filepath, filetype) or ""
+                    except Exception as e2:  # noqa: BLE001
+                        logger.warning("Fallback Qwen-VL OCR also failed: {}", e2)
+            # If we got here, the fallback did not produce text either.
+            return text or ""
+        # Primary engine produced usable text.
+        return text or ""
 
     def extract_structured(self, filepath: str, filetype: str) -> list:  # pragma: no cover - GPU/OCR runtime
         # Uses cache from extract_text since it's called immediately after
+        self.last_provider = None
         doc_type, provider = self._route(filepath, filetype)
         err: Optional[Exception] = None
         try:
             if hasattr(provider, "extract_structured"):
-                return provider.extract_structured(filepath, filetype)
+                result = provider.extract_structured(filepath, filetype)
+                if result:
+                    return result
         except Exception as e:  # noqa: BLE001 - fall back on any OCR failure
             err = e
-        if doc_type in ("HANDWRITTEN", "handwritten") and (err is not None or _looks_like_vision_error(getattr(provider, "last_text", ""))):
-            logger.warning("Handwritten structured OCR failed ({}); falling back to PaddleOCR", err or "vision error")
-            doc_type = "PRINTED_TEXT"
+        # If the primary engine produced nothing, try the other engine.
+        if doc_type == "HANDWRITTEN":
+            logger.warning("Handwritten structured OCR failed ({}); falling back to PaddleOCR", err or "empty")
             self.last_doc_type = "PRINTED_TEXT"
             paddle = _get_paddle_wrapper(**self._paddle_cfg)
             self.last_provider = paddle

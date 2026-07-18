@@ -48,7 +48,7 @@ class PrintedOCRAgent:
     @property
     def paddle_provider(self):
         if self._paddle_provider is None:
-            from paddle_ocr_provider import PaddleOCRProvider
+            from backend.ocr.providers.paddle_provider import PaddleOCRProvider
             self._paddle_provider = PaddleOCRProvider()
         return self._paddle_provider
 

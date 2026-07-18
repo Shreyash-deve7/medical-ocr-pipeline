@@ -1,0 +1,53 @@
+{
+  "preprocessing": {
+    "transformations_applied": [
+      "denoise",
+      "clahe",
+      "normalize_dpi"
+    ],
+    "quality_metrics_before": {
+      "sharpness_laplacian_var": 1490.0,
+      "contrast_rms": 36.54,
+      "skew_angle_degrees": 0.0,
+      "resolution_dpi": 85,
+      "snr": 0.1468
+    },
+    "quality_metrics_after": {
+      "sharpness_laplacian_var": 244.71,
+      "contrast_rms": 31.91,
+      "skew_angle_degrees": 0.0,
+      "resolution_dpi": 85,
+      "snr": 0.1282
+    },
+    "image_path": "tests\\sample_images\\printed_1.png"
+  },
+  "classification": {
+    "confidence": 0.6451972723007202,
+    "fallback_triggered": false,
+    "cnn_prediction": null,
+    "heuristic_prediction": null,
+    "class": "PRINTED_TEXT"
+  },
+  "ocr": {
+    "raw_output": "Alanine Aminotransferase 78 U/L\nAspartate Aminotransferase 65 U/L\nAlkaline Phosphatase 120U/L\nAlbumin 3.2 g/dL\nTotal Bilirubin 1.5 mg/dL",
+    "engine": "PaddleOCR-Basic",
+    "confidence": 0.9,
+    "processing_time_seconds": 14.228
+  },
+  "lab_report": {},
+  "diagnosis": {},
+  "summary": null,
+  "evaluation": null,
+  "timing": {
+    "preprocess": 1966,
+    "classify": 12660,
+    "ocr": 14237
+  },
+  "errors": {
+    "extract": "name 'Tuple' is not defined"
+  },
+  "metadata": {
+    "started_at": "2026-07-13T14:22:10.732641+00:00",
+    "completed_at": "2026-07-13T14:22:40.093327+00:00"
+  }
+}
