@@ -14,16 +14,39 @@ For handwritten reports, a different engine should be used.
 """
 from __future__ import annotations
 
+# NumPy 2.0 compatibility shim (before importing anything else that might import imgaug)
+import numpy as np
+if not hasattr(np, "sctypes"):
+    np.sctypes = {
+        "int": [np.int8, np.int16, np.int32, np.int64],
+        "uint": [np.uint8, np.uint16, np.uint32, np.uint64],
+        "float": [np.float16, np.float32, np.float64],
+        "complex": [np.complex64, np.complex128],
+        "others": [bool, object, bytes, str, np.void],
+    }
+
+# Shadow tools.py workaround: prepend paddleocr site-packages folder to sys.path
+import sys
+import os
+import site
+try:
+    for _sp in site.getsitepackages():
+        _po = os.path.join(_sp, "paddleocr")
+        if os.path.isdir(os.path.join(_po, "tools")):
+            if _po not in sys.path:
+                sys.path.insert(0, _po)
+            break
+except Exception:
+    pass
+
 import ctypes
 import importlib.util
 import json
 import logging
-import os
 import threading
 from pathlib import Path
 
 import cv2
-import numpy as np
 from PIL import Image
 
 def _configure_windows_dll_search() -> None:
