@@ -44,10 +44,10 @@ This task involves:
 
 ## SECTION D — PROGRESS CHECKLIST
 
-- [ ] Session 1: Clean and Prepare
-  - [ ] Add `Patient_Kastoor/` and `WhatsApp Unknown 2026-04-27 at 12.10.10/` to `.gitignore`
-  - [ ] Verify that no sensitive files or folders are staged or tracked using `git status`
-- [ ] Session 2: Remote Configuration and Push
-  - [ ] Add new remote `https://github.com/Shreyash-deve7/medical-ocr-pipeline` (e.g. as remote `dest` or change `origin`)
-  - [ ] Stage and commit changes (safe files only)
-  - [ ] Push code to the new remote repository
+- [x] Session 1: Clean and Prepare
+  - [x] Add `Patient_Kastoor/` and `WhatsApp Unknown 2026-04-27 at 12.10.10/` to `.gitignore`
+  - [x] Verify that no sensitive files or folders are staged or tracked using `git status`
+- [x] Session 2: Remote Configuration and Push
+  - [x] Add new remote `https://github.com/Shreyash-deve7/medical-ocr-pipeline` (e.g. as remote `dest` or change `origin`)
+  - [x] Stage and commit changes (safe files only)
+  - [x] Push code to the new remote repository

@@ -229,12 +229,20 @@ def ocr_structured_report(req: StructuredOCRReq):
 
 
 def _default_patient_id() -> str:
-    """Return the seeded default patient id, raising a clear error if missing."""
-    import main as _main
-    pid = _main.DEFAULT_PATIENT_ID
-    if not pid:
-        raise HTTPException(500, "Default patient not seeded yet")
-    return pid
+    """Return the seeded default patient id, raising a clear error if missing.
+
+    Resolves the ``DEFAULT_PATIENT_ID`` module global from whichever ``main``
+    module object actually ran the lifespan hook. When uvicorn loads
+    ``backend.main:app`` the module is registered as ``backend.main``; when the
+    test suite inserts ``backend/`` on ``sys.path`` and imports ``main`` it is
+    registered as ``main``. Check both so the seeded id is always found.
+    """
+    import sys
+    for modname in ("backend.main", "main"):
+        mod = sys.modules.get(modname)
+        if mod is not None and getattr(mod, "DEFAULT_PATIENT_ID", None):
+            return mod.DEFAULT_PATIENT_ID
+    raise HTTPException(500, "Default patient not seeded yet")
 
 
 
