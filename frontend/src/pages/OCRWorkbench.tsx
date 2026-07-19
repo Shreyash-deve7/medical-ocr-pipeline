@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
+import * as api from "../api";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -185,22 +186,94 @@ export function OCRWorkbench({ onBack, notify }: Props) {
 
   /* ---- Tab renderers ---- */
 
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleRealUpload = async (file: File, docType: string) => {
+    setUploading(true);
+    setPendingFile(null);
+    try {
+      const res = await api.testUploadReport(file, docType);
+      notify(`Uploaded ${file.name} as ${docType.toUpperCase()} (ID: ${res.report_id.slice(0, 8)})`, "success");
+    } catch (e: any) {
+      notify(e.message || "Upload failed", "error");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const renderUpload = () => (
     <div>
-      <div
-        className="neu"
-        style={{ padding: 40, textAlign: "center", cursor: "pointer", borderStyle: "dashed", borderWidth: 2, marginBottom: 20 }}
-        onClick={() => notify("File picker opened (mock)", "success")}
-      >
-        {Icon.upload}
-        <p style={{ margin: "12px 0 4px", fontWeight: 600 }}>Click to upload documents</p>
-        <p style={{ fontSize: 13, opacity: 0.6 }}>Drag and drop or click to browse</p>
-        <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 12, flexWrap: "wrap" }}>
-          {FORMATS.map((f) => (
-            <span key={f} style={{ fontSize: 11, padding: "2px 8px", borderRadius: 4, background: "var(--neu-bg, #e8e8e8)" }}>{f}</span>
-          ))}
+      <input
+        ref={fileRef}
+        type="file"
+        accept=".pdf,.png,.jpg,.jpeg,.webp"
+        hidden
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) setPendingFile(f);
+          e.target.value = "";
+        }}
+      />
+
+      {uploading ? (
+        <div className="neu" style={{ padding: 40, textAlign: "center", marginBottom: 20 }}>
+          <div style={{ fontSize: 24, marginBottom: 12 }}>⏳</div>
+          <h4 style={{ margin: 0 }}>Uploading to Medical AI Pipeline…</h4>
+          <p style={{ fontSize: 13, opacity: 0.7, marginTop: 4 }}>Processing document and queueing OCR extraction</p>
         </div>
-      </div>
+      ) : pendingFile ? (
+        <div className="neu" style={{ padding: 40, cursor: "default", borderStyle: "dashed", borderWidth: 2, marginBottom: 20 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <div style={{ fontWeight: 600 }}>📄 {pendingFile.name}</div>
+            <button className="neu-btn sm" onClick={(e) => { e.stopPropagation(); setPendingFile(null); }}>✕ Cancel</button>
+          </div>
+          <h4 style={{ textAlign: "center" }}>What type of document is this?</h4>
+          <p style={{ textAlign: "center", marginBottom: 20 }}>Select the format to route it to the best AI model.</p>
+          <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+            <button className="neu-btn" style={{ padding: "12px 24px" }} onClick={(e) => { e.stopPropagation(); handleRealUpload(pendingFile, "printed"); }}>
+              <div style={{ fontSize: 24, marginBottom: 8 }}>🖨️</div>
+              <div style={{ fontWeight: 600 }}>Printed</div>
+              <div style={{ fontSize: 11, opacity: 0.7, marginTop: 4 }}>Typed text (PaddleOCR)</div>
+            </button>
+            <button className="neu-btn" style={{ padding: "12px 24px" }} onClick={(e) => { e.stopPropagation(); handleRealUpload(pendingFile, "tabular"); }}>
+              <div style={{ fontSize: 24, marginBottom: 8 }}>📊</div>
+              <div style={{ fontWeight: 600 }}>Tabular</div>
+              <div style={{ fontSize: 11, opacity: 0.7, marginTop: 4 }}>Tables / lab panels (PaddleOCR)</div>
+            </button>
+            <button className="neu-btn" style={{ padding: "12px 24px" }} onClick={(e) => { e.stopPropagation(); handleRealUpload(pendingFile, "handwritten"); }}>
+              <div style={{ fontSize: 24, marginBottom: 8 }}>✍️</div>
+              <div style={{ fontWeight: 600 }}>Handwritten</div>
+              <div style={{ fontSize: 11, opacity: 0.7, marginTop: 4 }}>Doctor notes (Qwen2.5-VL)</div>
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div
+          className={`neu${dragging ? " dragging" : ""}`}
+          style={{ padding: 40, textAlign: "center", cursor: "pointer", borderStyle: "dashed", borderWidth: 2, marginBottom: 20 }}
+          onClick={() => fileRef.current?.click()}
+          onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDragging(false);
+            const f = e.dataTransfer.files[0];
+            if (f) setPendingFile(f);
+          }}
+        >
+          {Icon.upload}
+          <p style={{ margin: "12px 0 4px", fontWeight: 600 }}>Click to upload documents</p>
+          <p style={{ fontSize: 13, opacity: 0.6 }}>Drag and drop or click to browse</p>
+          <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 12, flexWrap: "wrap" }}>
+            {FORMATS.map((f) => (
+              <span key={f} style={{ fontSize: 11, padding: "2px 8px", borderRadius: 4, background: "var(--neu-bg, #e8e8e8)" }}>{f}</span>
+            ))}
+          </div>
+        </div>
+      )}
 
       <h4 className="section-header">Batch Queue</h4>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -226,8 +299,8 @@ export function OCRWorkbench({ onBack, notify }: Props) {
         <h4 className="section-header" style={{ marginTop: 0 }}>MedVault OCR Pipeline</h4>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, flexWrap: "wrap", marginTop: 16 }}>
           <div className="neu" style={{ padding: "12px 20px", borderRadius: 8, background: "#dbeafe" }}>
-            <div style={{ fontWeight: 600, fontSize: 14 }}>Document Classifier</div>
-            <div style={{ fontSize: 11, opacity: 0.6 }}>MobileNetV3</div>
+            <div style={{ fontWeight: 600, fontSize: 14 }}>User Selection</div>
+            <div style={{ fontSize: 11, opacity: 0.6 }}>Routing Decision</div>
           </div>
           <span style={{ fontSize: 20, opacity: 0.4 }}>→</span>
           <div className="neu" style={{ padding: "12px 20px", borderRadius: 8, borderLeft: "4px solid #22c55e" }}>
@@ -241,7 +314,7 @@ export function OCRWorkbench({ onBack, notify }: Props) {
           </div>
         </div>
         <div style={{ fontSize: 12, opacity: 0.5, marginTop: 16 }}>
-          Auto-detection via document classifier · No manual engine selection needed
+          Explicit user selection at upload · Routing documents to the optimal backend
         </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 14 }}>

@@ -78,10 +78,7 @@ export function App() {
           {view !== "pick" && (
             <>
               <button className="neu-btn sm ghost" onClick={() => setView("pick")}>Home</button>
-              <button className="neu-btn sm ghost" onClick={() => setView("dashboard")}>Dashboard</button>
-              <button className="neu-btn sm ghost" onClick={() => setView("messages")}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-              </button>
+              <button className="neu-btn sm ghost" onClick={() => setView("dashboard")}>Analytics</button>
             </>
           )}
           <button className="neu-btn sm ghost" onClick={() => setView("settings")} title="Settings">

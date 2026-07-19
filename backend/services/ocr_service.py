@@ -73,33 +73,11 @@ class QwenVLProviderWrapper(OCRProvider):
         return self._provider.extract_structured(filepath, filetype)
 
 
-def _first_page_cv2(filepath: str, filetype: str) -> "np.ndarray":
-    """Return the first page/image of a document as a BGR ndarray (for classification).
-    Applies preprocessing (crop, enhance, normalize) for better classification accuracy."""
-    from image_processing import preprocess_image
-    return preprocess_image(filepath)
-
-
 # Module-level singletons for caching
-_classifier_cache = None
-_classifier_lock = threading.Lock()
 _paddle_wrapper_cache = None
 _paddle_wrapper_lock = threading.Lock()
 _qwen_wrapper_cache = None
 _qwen_wrapper_lock = threading.Lock()
-
-
-def _get_classifier(weights_path: str = ""):
-    """Get cached DocumentClassifier instance."""
-    global _classifier_cache
-    if _classifier_cache is None:
-        with _classifier_lock:
-            if _classifier_cache is None:
-                from document_classifier import DocumentClassifier, DEFAULT_WEIGHTS_PATH
-                # Auto-discover the trained weights when no explicit path is given.
-                wp = weights_path or DEFAULT_WEIGHTS_PATH
-                _classifier_cache = DocumentClassifier(weights_path=wp or None)
-    return _classifier_cache
 
 
 def _get_paddle_wrapper(use_gpu: bool = True, lang: str = "en", use_angle_cls: bool = True):
@@ -130,7 +108,7 @@ def _get_qwen_wrapper(server_url: str = "", model_id: str = "Qwen/Qwen2.5-VL-3B-
                     _qwen_wrapper_cache = (key, QwenVLProviderWrapper(server_url=server_url))
                 else:
                     _qwen_wrapper_cache = (key, QwenVLProviderWrapper(
-                        model_id=model_id, device=device or "", torch_dtype=torch_dtype,
+                        model_id=model_id, device=device or None, torch_dtype=torch_dtype,
                         max_pixels=max_pixels, load_in_4bit=load_in_4bit))
     return _qwen_wrapper_cache[1]
 
@@ -154,18 +132,18 @@ class AutoOCRProvider(OCRProvider):
     misclassification (e.g. a faint handwritten note sent to PaddleOCR) still
     recovers instead of returning a blank report.
     """
-    # Below this confidence the classifier is treated as "uncertain" and the
-    # document is routed to PaddleOCR (which is robust for printed + tables and
-    # is the safe default). Only clearly handwritten docs take the Qwen path.
-    HANDWRITTEN_CONF_THRESHOLD = float(os.environ.get("HANDWRITTEN_CONF_THRESHOLD", "0.75"))
+    # Valid user hint values (case-insensitive).  ``auto`` means "no hint —
+    # let the classifier decide" (the default / backward-compatible path).
+    _VALID_HINTS = {"auto", "printed", "printed_text", "table", "tabular", "handwritten"}
 
     def __init__(self, class_weights: str = "",
                  paddle_endpoint: str = "", paddle_use_gpu: bool = True,
                  paddle_lang: str = "en", paddle_use_angle_cls: bool = True,
                  qwen_server_url: str = "", qwen_model_id: str = "Qwen/Qwen2.5-VL-3B-Instruct",
                  qwen_device: str = "", qwen_torch_dtype: str = "bfloat16",
-                 qwen_max_pixels: int = 128 * 28 * 28, qwen_load_in_4bit: bool = True):
-        self._classifier = _get_classifier(class_weights)
+                 qwen_max_pixels: int = 128 * 28 * 28, qwen_load_in_4bit: bool = True,
+                 doc_type_hint: str = ""):
+        # Classifier has been removed; we rely exclusively on doc_type_hint.
         self._paddle_endpoint = paddle_endpoint
         self._paddle_cfg = dict(use_gpu=paddle_use_gpu, lang=paddle_lang, use_angle_cls=paddle_use_angle_cls)
         # Prefer the microservice URL from the environment (true GPU path in a
@@ -176,28 +154,39 @@ class AutoOCRProvider(OCRProvider):
                               load_in_4bit=qwen_load_in_4bit)
         self.last_doc_type: str = "printed"
         self.last_confidence: float = 0.0
+        # Optional user-supplied document-type hint.  When set to a valid
+        # class label (``printed_text`` / ``table`` / ``handwritten``) the
+        # classifier is skipped entirely and the hint is trusted as the
+        # routing decision — this lets the UI give users an explicit choice
+        # while still falling back to the classifier when the hint is
+        # ``auto`` or empty.
+        self._doc_type_hint = self._normalise_hint(doc_type_hint)
+
+    @classmethod
+    def _normalise_hint(cls, hint: str) -> str:
+        """Normalise a user hint to one of the 3 canonical labels or ``auto``."""
+        if not hint:
+            return "auto"
+        h = hint.strip().lower()
+        if h not in cls._VALID_HINTS:
+            logger.warning("Unknown doc_type_hint '{}'; ignoring (using classifier)", h)
+            return "auto"
+        # Map aliases to the canonical classifier labels.
+        if h == "printed":
+            return "PRINTED_TEXT"
+        if h == "table" or h == "tabular":
+            return "TABLE"
+        if h == "handwritten":
+            return "HANDWRITTEN"
+        return "auto"  # "auto" or "printed_text" (already canonical)
 
     # ── classification (confidence-gated) ──────────────────────────────────
     def _classify(self, filepath: str, filetype: str) -> tuple:
-        """Return (doc_type, confidence) using the 3-class classifier.
-
-        Confidence-gated: a HANDWRITTEN prediction below
-        ``HANDWRITTEN_CONF_THRESHOLD`` is downgraded to PRINTED_TEXT, because
-        PaddleOCR is the safe, GPU-backed default and the Qwen (handwritten)
-        path is the expensive/specialised one.
-        """
-        img = _first_page_cv2(filepath, filetype)
-        res = self._classifier.predict_3class(img)
-        doc_type = res.doc_class
-        conf = float(getattr(res, "confidence", 0.0) or 0.0)
-        self.last_confidence = conf
-        if doc_type == "HANDWRITTEN" and conf < self.HANDWRITTEN_CONF_THRESHOLD:
-            logger.info(
-                "Handwritten confidence %.2f < %.2f; routing to PaddleOCR (PRINTED_TEXT) instead",
-                conf, self.HANDWRITTEN_CONF_THRESHOLD,
-            )
-            return "PRINTED_TEXT", conf
-        return doc_type, conf
+        """Return (doc_type, confidence) based purely on the explicit user hint."""
+        if self._doc_type_hint == "auto":
+            raise ValueError("doc_type must be explicitly provided — ML auto-classification is disabled")
+        self.last_confidence = 1.0
+        return self._doc_type_hint, 1.0
 
     def _build_qwen(self):
         if self._qwen_server_url:
@@ -231,9 +220,12 @@ class AutoOCRProvider(OCRProvider):
         """True when OCR produced no usable content (blank / whitespace only)."""
         return not (text or "").strip()
 
-    def extract_text(self, filepath: str, filetype: str) -> str:  # pragma: no cover - GPU/OCR runtime
+    def extract_text(self, filepath: str, filetype: str, doc_type_hint: str = "") -> str:  # pragma: no cover - GPU/OCR runtime
         # Reset cache on new extraction
         self.last_provider = None
+        # Per-call hint overrides the constructor-level hint (if any).
+        if doc_type_hint:
+            self._doc_type_hint = self._normalise_hint(doc_type_hint)
         doc_type, provider = self._route(filepath, filetype)
         err: Optional[Exception] = None
         try:
@@ -269,9 +261,12 @@ class AutoOCRProvider(OCRProvider):
         # Primary engine produced usable text.
         return text or ""
 
-    def extract_structured(self, filepath: str, filetype: str) -> list:  # pragma: no cover - GPU/OCR runtime
+    def extract_structured(self, filepath: str, filetype: str, doc_type_hint: str = "") -> list:  # pragma: no cover - GPU/OCR runtime
         # Uses cache from extract_text since it's called immediately after
         self.last_provider = None
+        # Per-call hint overrides the constructor-level hint (if any).
+        if doc_type_hint:
+            self._doc_type_hint = self._normalise_hint(doc_type_hint)
         doc_type, provider = self._route(filepath, filetype)
         err: Optional[Exception] = None
         try:

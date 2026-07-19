@@ -60,6 +60,24 @@ def get_db() -> sqlite3.Connection:
     return _connect()
 
 
+def _migrate_patients_schema(conn: sqlite3.Connection) -> None:
+    # Safely add missing columns one by one
+    columns = [
+        "date_of_birth TEXT",
+        "gender TEXT",
+        "blood_group TEXT",
+        "email TEXT",
+        "address TEXT",
+        "emergency_contact TEXT",
+        "emergency_phone TEXT"
+    ]
+    for col in columns:
+        try:
+            conn.execute(f"ALTER TABLE patients ADD COLUMN {col}")
+        except sqlite3.OperationalError:
+            # Column already exists
+            pass
+
 def init_db() -> None:
     """Create all tables referenced by the routes if they do not yet exist.
 
@@ -70,6 +88,7 @@ def init_db() -> None:
         conn = _connect()
         try:
             conn.executescript(_SCHEMA_SQL)
+            _migrate_patients_schema(conn)
             conn.commit()
         finally:
             conn.close()
@@ -81,6 +100,13 @@ CREATE TABLE IF NOT EXISTS patients (
     phone TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
     name TEXT NOT NULL,
+    date_of_birth TEXT,
+    gender TEXT,
+    blood_group TEXT,
+    email TEXT,
+    address TEXT,
+    emergency_contact TEXT,
+    emergency_phone TEXT,
     created_at TEXT DEFAULT (datetime('now'))
 );
 

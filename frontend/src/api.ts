@@ -20,10 +20,11 @@ export const register = (phone: string, password: string, name: string) =>
   jsonPost("/patient/register", { phone, password, name }) as Promise<{ token: string; patient_id: string }>;
 export const login = (phone: string, password: string) =>
   jsonPost("/patient/login", { phone, password }) as Promise<{ token: string; patient_id: string }>;
-export const uploadReport = (token: string, file: File) => {
+export const uploadReport = (token: string, file: File, docType: string) => {
   const fd = new FormData();
   fd.append("token", token);
   fd.append("file", file);
+  fd.append("doc_type", docType);
   return request<{ report_id: string; filename: string }>("/patient/upload", { method: "POST", body: fd });
 };
 export const patientReports = (token: string) =>
@@ -35,9 +36,10 @@ export const updatePatientProfile = (token: string, data: any) =>
 
 // ── No-auth test endpoints (test-only version, no login required) ───────────
 // These hit /api/test/* which operate on a seeded default patient on the backend.
-export const testUploadReport = (file: File) => {
+export const testUploadReport = (file: File, docType: string) => {
   const fd = new FormData();
   fd.append("file", file);
+  fd.append("doc_type", docType);
   return request<{ report_id: string; filename: string }>("/test/upload", { method: "POST", body: fd });
 };
 export const testReports = () => request<any[]>("/test/reports");
@@ -50,13 +52,12 @@ export interface GpuStatus {
   preload_started: boolean;
   preload_done: boolean;
   preload_error: string | null;
-  classifier_loaded: boolean;
-  classifier_error: string | null;
   paddle_loaded: boolean;
   paddle_using_gpu: boolean;
   paddle_error: string | null;
   qwen_loaded: boolean;
   qwen_error: string | null;
+  qwen_using_microservice?: boolean;
 }
 export const gpuStatus = () => request<GpuStatus>("/gpu/status");
 export const gpuPreload = () =>
@@ -81,12 +82,13 @@ export const analyzeReport = (reportId: string, opts: { apiKey?: string; aiProvi
 export const runPipeline = async (
   fileBlob: Blob,
   filename: string,
-  opts: { summary?: boolean; evaluate?: boolean } = {}
+  opts: { summary?: boolean; evaluate?: boolean; reportId?: string } = {}
 ) => {
   const fd = new FormData();
   fd.append("file", fileBlob, filename);
   if (opts.summary) fd.append("summary", "true");
   if (opts.evaluate) fd.append("evaluate", "true");
+  if (opts.reportId) fd.append("report_id", opts.reportId);
   return request<PipelineResult>("/pipeline/run", { method: "POST", body: fd });
 };
 

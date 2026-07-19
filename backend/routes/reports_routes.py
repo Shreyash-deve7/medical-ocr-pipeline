@@ -36,7 +36,12 @@ ALLOWED_EXTENSIONS = {".pdf", ".png", ".jpg", ".jpeg", ".webp"}
 
 
 @router.post("/api/patient/upload")
-async def upload_report(token: str = Form(...), file: UploadFile = File(...), bg: BackgroundTasks = None):
+async def upload_report(
+    token: str = Form(...),
+    file: UploadFile = File(...),
+    doc_type: str = Form(...),
+    bg: BackgroundTasks = None
+):
     """
     Upload a medical report file (PDF or image) for a patient.
     
@@ -60,6 +65,10 @@ async def upload_report(token: str = Form(...), file: UploadFile = File(...), bg
         ext = Path(file.filename or "file").suffix.lower()
         if ext not in ALLOWED_EXTENSIONS:
             raise HTTPException(400, f"Only PDF and image files accepted. Got: {ext or 'no extension'}")
+            
+        # Validate doc_type
+        if doc_type not in {"printed", "tabular", "handwritten"}:
+            raise HTTPException(422, f"Invalid doc_type. Expected 'printed', 'tabular', or 'handwritten', got: {doc_type}")
         
         # Read and validate file content
         content = await file.read()
@@ -81,8 +90,8 @@ async def upload_report(token: str = Form(...), file: UploadFile = File(...), bg
         conn = get_db()
         try:
             conn.execute(
-                "INSERT INTO reports (id, patient_id, filename, filepath, filetype, shared_at) VALUES (?,?,?,?,?,?)",
-                (rid, patient_id, file.filename, str(dest), filetype, now),
+                "INSERT INTO reports (id, patient_id, filename, filepath, filetype, shared_at, doc_type) VALUES (?,?,?,?,?,?,?)",
+                (rid, patient_id, file.filename, str(dest), filetype, now, doc_type),
             )
             conn.commit()
         except Exception as db_error:
@@ -101,7 +110,7 @@ async def upload_report(token: str = Form(...), file: UploadFile = File(...), bg
         # block the ASGI worker thread (which starves subsequent requests and
         # causes "Failed to fetch" in the frontend).
         from services.pipeline_service import process_report_automatic
-        threading.Thread(target=process_report_automatic, args=(rid,), daemon=True).start()
+        threading.Thread(target=process_report_automatic, args=(rid, 3, doc_type), daemon=True).start()
         
         return {"report_id": rid, "filename": file.filename}
     
@@ -247,7 +256,11 @@ def _default_patient_id() -> str:
 
 
 @router.post("/api/test/upload")
-async def test_upload_report(file: UploadFile = File(...), bg: BackgroundTasks = None):
+async def test_upload_report(
+    file: UploadFile = File(...),
+    doc_type: str = Form(...),
+    bg: BackgroundTasks = None
+):
     """Upload a report for the default patient — no auth token required."""
     try:
         patient_id = _default_patient_id()
@@ -255,6 +268,10 @@ async def test_upload_report(file: UploadFile = File(...), bg: BackgroundTasks =
         ext = Path(file.filename or "file").suffix.lower()
         if ext not in ALLOWED_EXTENSIONS:
             raise HTTPException(400, f"Only PDF and image files accepted. Got: {ext or 'no extension'}")
+
+        # Validate doc_type
+        if doc_type not in {"printed", "tabular", "handwritten"}:
+            raise HTTPException(422, f"Invalid doc_type. Expected 'printed', 'tabular', or 'handwritten', got: {doc_type}")
 
         content = await file.read()
         if len(content) == 0:
@@ -272,8 +289,8 @@ async def test_upload_report(file: UploadFile = File(...), bg: BackgroundTasks =
         conn = get_db()
         try:
             conn.execute(
-                "INSERT INTO reports (id, patient_id, filename, filepath, filetype, shared_at) VALUES (?,?,?,?,?,?)",
-                (rid, patient_id, file.filename, str(dest), filetype, now),
+                "INSERT INTO reports (id, patient_id, filename, filepath, filetype, shared_at, doc_type) VALUES (?,?,?,?,?,?,?)",
+                (rid, patient_id, file.filename, str(dest), filetype, now, doc_type),
             )
             conn.commit()
         except Exception as db_error:
@@ -291,7 +308,7 @@ async def test_upload_report(file: UploadFile = File(...), bg: BackgroundTasks =
         # block the ASGI worker thread (which starves subsequent requests and
         # causes "Failed to fetch" in the frontend).
         from services.pipeline_service import process_report_automatic
-        threading.Thread(target=process_report_automatic, args=(rid,), daemon=True).start()
+        threading.Thread(target=process_report_automatic, args=(rid, 3, doc_type), daemon=True).start()
 
         return {"report_id": rid, "filename": file.filename}
 

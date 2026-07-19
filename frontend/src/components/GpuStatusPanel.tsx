@@ -88,18 +88,24 @@ export function GpuStatusPanel() {
         <button className="neu-btn sm gpu-refresh" onClick={refresh} title="Refresh">↻</button>
       </div>
 
-      <div className={`gpu-cuda-row ${s.cuda_available ? "ok" : "warn"}`}>
+      <div className={`gpu-cuda-row ${s.cuda_available ? "ok" : "neutral"}`}>
         <span className="gpu-cuda-label">CUDA</span>
         <span className="gpu-cuda-value">
-          {s.cuda_available ? `✅ ${s.cuda_device_name}` : "❌ Not available"}
+          {s.cuda_available ? `✅ ${s.cuda_device_name}` : "CPU mode"}
         </span>
         {s.torch_version && <span className="gpu-torch">torch {s.torch_version}</span>}
       </div>
 
       <div className="gpu-models">
-        {modelRow("Classifier CNN", s.classifier_loaded, s.classifier_error)}
         {modelRow("PaddleOCR", s.paddle_loaded, s.paddle_error, s.paddle_using_gpu ? "GPU" : "CPU")}
-        {modelRow("Qwen2.5-VL", s.qwen_loaded, s.qwen_error)}
+        {s.qwen_using_microservice ? (
+          <div className="gpu-model-row loaded">
+            <span className="gpu-model-name">Qwen2.5-VL</span>
+            <span className="gpu-model-state">✅ External microservice</span>
+          </div>
+        ) : (
+          modelRow("Qwen2.5-VL", s.qwen_loaded, s.qwen_error)
+        )}
       </div>
 
       {s.preload_error && (

@@ -23,6 +23,11 @@ from fastapi import FastAPI, File, UploadFile, Request
 from fastapi.responses import JSONResponse
 from transformers import AutoProcessor, Qwen2_5_VLForConditionalGeneration as AutoModelForVision2Seq
 
+# Skip transformers caching allocator warmup which tries to allocate
+# a huge contiguous block and fails on memory-fragmented GPUs.
+import transformers.modeling_utils as _mu
+_mu.caching_allocator_warmup = lambda *a, **k: None
+
 app = FastAPI(title="Qwen-VL Handwritten OCR microservice (GPU)")
 
 MODEL_ID = os.environ.get("QWEN_MODEL_ID", "Qwen/Qwen2.5-VL-3B-Instruct")
@@ -30,7 +35,7 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 # NOTE: 4-bit (bitsandbytes) and torch.compile were tested on this RTX 5060
 # (Blackwell, sm_120) and were SLOWER (4-bit ~7x, compile hung) than plain bf16.
 # They are kept as opt-in env flags but default OFF to the proven-fast path.
-LOAD_IN_4BIT = os.environ.get("QWEN_4BIT", "0") != "0"
+LOAD_IN_4BIT = os.environ.get("QWEN_4BIT", "1") != "0"
 USE_COMPILE = os.environ.get("QWEN_COMPILE", "0") != "0"
 
 # Load Qwen2.5-VL on the GPU.
@@ -49,16 +54,20 @@ if LOAD_IN_4BIT:
         from transformers import BitsAndBytesConfig
         load_kwargs["quantization_config"] = BitsAndBytesConfig(
             load_in_4bit=True,
-            bnb_4bit_compute_dtype=torch.bfloat16,
+            bnb_4bit_compute_dtype=torch.float16,
             bnb_4bit_quant_type="nf4",
-            bnb_4bit_use_double_quant=True,
+            bnb_4bit_use_double_quant=False,
         )
     except Exception as e:
-        print(f"[QwenVL] 4-bit unavailable ({e}); falling back to bf16.")
+        print(f"[QwenVL] 4-bit unavailable ({e}); falling back to fp16.")
         LOAD_IN_4BIT = False
-        load_kwargs["torch_dtype"] = torch.bfloat16
+        load_kwargs["torch_dtype"] = torch.float16
 
-model = AutoModelForVision2Seq.from_pretrained(MODEL_ID, **load_kwargs)
+try:
+    from transformers import AutoModelForVision2Seq as _M
+except ImportError:
+    from transformers import Qwen2_5_VLForConditionalGeneration as _M
+model = _M.from_pretrained(MODEL_ID, **load_kwargs)
 model.eval()
 
 if USE_COMPILE and DEVICE == "cuda":
@@ -82,6 +91,14 @@ PROMPT = (
 
 
 def _run_ocr(pil_img: Image.Image) -> str:
+    # Resize to a reasonable max dimension before GPU processing to avoid OOM.
+    # Qwen2.5-VL's internal token budget handles the rest via max_pixels.
+    MAX_IMG_DIM = 1024
+    w, h = pil_img.size
+    if max(w, h) > MAX_IMG_DIM:
+        scale = MAX_IMG_DIM / max(w, h)
+        pil_img = pil_img.resize((int(w * scale), int(h * scale)), Image.LANCZOS)
+
     messages = [{
         "role": "user",
         "content": [

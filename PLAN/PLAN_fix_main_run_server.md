@@ -43,9 +43,9 @@ Any feature additions or other code changes.
 
 ## SECTION D — PROGRESS CHECKLIST
 
-- [ ] Session 1: Commit and Push Correct Files
-  - [ ] Stage and commit `backend/main.py` and `backend/routes/reports_routes.py`
-  - [ ] Push changes to `dest main`
-- [ ] Session 2: Start and Verify Servers
-  - [ ] Start backend server on port 8000
-  - [ ] Verify `/health` and `/api/gpu/status` respond successfully
+- [x] Session 1: Commit and Push Correct Files
+  - [x] Stage and commit `backend/main.py` and `backend/routes/reports_routes.py`
+  - [x] Push changes to `dest main`
+- [x] Session 2: Start and Verify Servers
+  - [x] Start backend server on port 8000
+  - [x] Verify `/health` and `/api/gpu/status` respond successfully

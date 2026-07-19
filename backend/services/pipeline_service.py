@@ -35,22 +35,10 @@ class PipelineResult:
     ``result.to_dict()`` unchanged.
     """
 
-    doc_type: str = "printed"
-    ocr_text: str = ""
-    ocr_engine: str = "AutoOCRProvider"
-    structured_results: list = field(default_factory=list)
-    analysis: Optional[str] = None
-    status: str = "done"
+    payload: dict = field(default_factory=dict)
 
     def to_dict(self) -> dict:
-        return {
-            "doc_type": self.doc_type,
-            "ocr_text": self.ocr_text,
-            "ocr_engine": self.ocr_engine,
-            "structured_results": self.structured_results,
-            "analysis": self.analysis,
-            "status": self.status,
-        }
+        return self.payload
 
 
 # ── reports-row helpers ──────────────────────────────────────────────────────
@@ -87,7 +75,7 @@ def _get_report_row(conn, report_id: str) -> Optional[dict]:
 
 
 # ── automatic background OCR (goal.md step 3) ─────────────────────────────────
-def process_report_automatic(report_id: str, max_retries: int = 3) -> dict:
+def process_report_automatic(report_id: str, max_retries: int = 3, doc_type_hint: str = "") -> dict:
     """Run OCR for an uploaded report in the background and persist the result.
 
     Designed to be invoked from a ``threading.Thread(target=..., daemon=True)``
@@ -137,10 +125,10 @@ def process_report_automatic(report_id: str, max_retries: int = 3) -> dict:
                 conn.commit()
 
                 from services.ocr_service import AutoOCRProvider
-                ocr = AutoOCRProvider()
+                ocr = AutoOCRProvider(doc_type_hint=doc_type_hint)
 
                 start = time.time()
-                ocr_text = ocr.extract_text(filepath, filetype)
+                ocr_text = ocr.extract_text(filepath, filetype, doc_type_hint=doc_type_hint)
                 duration = time.time() - start
                 doc_type = getattr(ocr, "last_doc_type", "printed")
                 ocr_engine = type(ocr.last_provider).__name__ if getattr(ocr, "last_provider", None) else "AutoOCRProvider"
@@ -154,6 +142,12 @@ def process_report_automatic(report_id: str, max_retries: int = 3) -> dict:
                             report_id, duration, doc_type, ocr_engine)
                 return {"report_id": report_id, "status": "done", "doc_type": doc_type,
                         "duration": duration, "ocr_engine": ocr_engine}
+            except ValueError as cfg_err:
+                conn.execute("UPDATE reports SET status='failed', error=? WHERE id=?",
+                             (f"ValueError: {cfg_err}", report_id))
+                conn.commit()
+                logger.error("process_report_automatic: {} permanently failed (config error)\n{}", report_id, str(cfg_err))
+                return {"report_id": report_id, "status": "failed", "error": str(cfg_err), "attempts": attempt}
             except Exception as ocr_err:  # noqa: BLE001 - retry on transient OCR failure
                 logger.warning("process_report_automatic: attempt {}/{} failed for {}: {}",
                                attempt, max_retries, report_id, ocr_err)
@@ -174,7 +168,7 @@ def process_report_automatic(report_id: str, max_retries: int = 3) -> dict:
 
 # ── unified pipeline entrypoint (POST /api/pipeline/run) ──────────────────────
 def run_pipeline(content: bytes, evaluate: bool = False, summary: bool = False,
-                 use_graph: bool = True) -> PipelineResult:
+                 use_graph: bool = True, report_id: str | None = None) -> PipelineResult:
     """Run the full MedVault OCR pipeline over raw image bytes.
 
     Returns a ``PipelineResult`` exposing ``.to_dict()`` so the endpoint in
@@ -187,6 +181,13 @@ def run_pipeline(content: bytes, evaluate: bool = False, summary: bool = False,
     ``use_graph`` selects the PipelineGraph DAG orchestration when available;
     when the graph machinery is not importable we fall back to the linear
     OCR -> (optional structured) -> (optional AI) path below.
+
+    ``report_id``: when provided, the pipeline first checks the ``reports`` row
+    for OCR text already produced by the upload's background task
+    (``process_report_automatic``). If a non-empty ``ocr_text`` with
+    ``status='done'`` is present, it is reused and the expensive OCR step is
+    skipped — making the doctor's "Run Pipeline" near-instant. OCR is only
+    re-run when the stored text is missing/empty/failed.
     """
     import tempfile
     from pathlib import Path
@@ -196,28 +197,57 @@ def run_pipeline(content: bytes, evaluate: bool = False, summary: bool = False,
     tmp.write_bytes(content)
 
     try:
-        from services.ocr_service import AutoOCRProvider
-        ocr = AutoOCRProvider()
         doc_type = "printed"
         ocr_text = ""
         ocr_engine = "AutoOCRProvider"
-        try:
-            ocr_text = ocr.extract_text(str(tmp), "image")
-            doc_type = getattr(ocr, "last_doc_type", "printed")
-            ocr_engine = type(ocr.last_provider).__name__ if getattr(ocr, "last_provider", None) else ocr_engine
-        except Exception as e:  # noqa: BLE001 - surface as a result, don't crash the endpoint
-            logger.warning("run_pipeline: OCR failed: {}", e)
-
-        # Reuse the existing agentic DAG when present (full preprocess->classify->
-        # OCR->extract->validate->diagnose->[summary]->[evaluate] flow).
         structured: list[dict] = []
-        analysis: Optional[str] = None
-        try:
-            if hasattr(ocr, "extract_structured"):
-                structured = ocr.extract_structured(str(tmp), "image") or []
-        except Exception as e:  # noqa: BLE001
-            logger.warning("run_pipeline: structured OCR failed: {}", e)
 
+        # ── Reuse stored OCR text when available (big speed win) ──────────
+        reused = False
+        if report_id:
+            try:
+                from database import get_db
+                conn = get_db()
+                try:
+                    row = conn.execute(
+                        "SELECT ocr_text, doc_type, ocr_engine, status FROM reports WHERE id=?",
+                        (report_id,),
+                    ).fetchone()
+                finally:
+                    conn.close()
+                if row:
+                    stored_text = (row["ocr_text"] or "").strip() if "ocr_text" in row.keys() else ""
+                    stored_status = row["status"] if "status" in row.keys() else ""
+                    if stored_text and stored_status != "failed":
+                        ocr_text = stored_text
+                        doc_type = row["doc_type"] or "printed"
+                        ocr_engine = row["ocr_engine"] or ocr_engine
+                        reused = True
+                        logger.info("run_pipeline: reused stored OCR for report {} ({} chars, {})",
+                                    report_id, len(ocr_text), ocr_engine)
+            except Exception as e:  # noqa: BLE001 - reuse is best-effort; fall back to OCR
+                logger.warning("run_pipeline: stored-OCR lookup failed for {}: {}", report_id, e)
+
+        # ── Run OCR only when we don't have stored text ───────────────────
+        if not reused:
+            from services.ocr_service import AutoOCRProvider
+            ocr = AutoOCRProvider()
+            try:
+                ocr_text = ocr.extract_text(str(tmp), "image")
+                doc_type = getattr(ocr, "last_doc_type", "printed")
+                ocr_engine = type(ocr.last_provider).__name__ if getattr(ocr, "last_provider", None) else ocr_engine
+            except Exception as e:  # noqa: BLE001 - surface as a result, don't crash the endpoint
+                logger.warning("run_pipeline: OCR failed: {}", e)
+
+            # Reuse the existing agentic DAG when present (full preprocess->classify->
+            # OCR->extract->validate->diagnose->[summary]->[evaluate] flow).
+            try:
+                if hasattr(ocr, "extract_structured"):
+                    structured = ocr.extract_structured(str(tmp), "image") or []
+            except Exception as e:  # noqa: BLE001
+                logger.warning("run_pipeline: structured OCR failed: {}", e)
+
+        analysis: Optional[str] = None
         if (evaluate or summary) and ocr_text:
             try:
                 from services.ai_service import build_ai, MEDICAL_PROMPT, _extract_images
@@ -226,14 +256,80 @@ def run_pipeline(content: bytes, evaluate: bool = False, summary: bool = False,
             except Exception as e:  # noqa: BLE001
                 logger.warning("run_pipeline: AI analysis skipped: {}", e)
 
-        return PipelineResult(
-            doc_type=doc_type,
-            ocr_text=ocr_text,
-            ocr_engine=ocr_engine,
-            structured_results=structured,
-            analysis=analysis,
-            status="done" if ocr_text else "failed",
-        )
+        # Build the heavily nested payload for the frontend
+        lab_results = []
+        diag_dict = None
+        if ocr_text:
+            try:
+                from agents.ocr_result import OCRResult
+                from agents.extraction_agent import ExtractionAgent
+                from schemas import LabReport
+                from agents.diagnosis_agent import DiagnosisAgent
+                
+                ocr_res = OCRResult(
+                    raw_output=ocr_text,
+                    engine=ocr_engine,
+                    confidence=1.0,
+                    processing_time_seconds=0.0
+                )
+                # Run extraction (heuristic fallback, no LLM)
+                extract_agent = ExtractionAgent(llm_client=None)
+                extract_res = extract_agent.run(ocr_res)
+                lab_results = extract_res.lab_results
+                
+                # Run diagnosis (heuristic fallback, no LLM)
+                diag_agent = DiagnosisAgent(llm_client=None)
+                lab_rep = LabReport(
+                    report_id=report_id or "tmp",
+                    patient_id="tmp",
+                    date="tmp",
+                    lab_results=lab_results
+                )
+                diag_res = diag_agent.run(lab_rep)
+                if hasattr(diag_res, "model_dump"):
+                    diag_dict = diag_res.model_dump()
+                elif hasattr(diag_res, "to_dict"):
+                    diag_dict = diag_res.to_dict()
+                else:
+                    diag_dict = dict(diag_res)
+            except Exception as e:
+                logger.warning("run_pipeline: Agents failed: {}", e)
+        
+        if not diag_dict:
+            diag_dict = {
+                "clinical_patterns": [],
+                "abnormal_values": [],
+                "urgent_flags": [],
+                "suggested_followup": [],
+                "summary_for_doctor": "Diagnosis unavailable.",
+                "llm_narrative": None
+            }
+
+        payload = {
+            "preprocessing": {"transformations_applied": [], "quality_metrics_before": {}},
+            "classification": {"class": doc_type.upper(), "confidence": 1.0, "fallback_triggered": False},
+            "ocr": {
+                "raw_output": ocr_text,
+                "engine": ocr_engine,
+                "confidence": None,
+                "processing_time_seconds": 0
+            },
+            "lab_report": {"lab_results": lab_results},
+            "diagnosis": diag_dict,
+            "summary": {"summary": analysis, "flags": [], "critical_alerts": [], "discussion_points": []} if analysis else None,
+            "evaluation": None,
+            "metadata": {
+                "use_graph": False,
+                "evaluate": evaluate,
+                "summary": summary,
+                "duration_ms": 0,
+                "started_at": "",
+                "completed_at": "",
+                "errors": {}
+            }
+        }
+
+        return PipelineResult(payload=payload)
     finally:
         try:
             tmp.unlink(missing_ok=True)

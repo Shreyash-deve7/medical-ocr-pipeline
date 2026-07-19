@@ -82,3 +82,10 @@ extern/**/*.pkl
 Patient_Kastoor/
 WhatsApp Unknown 2026-04-27 at 12.10.10/
 
+# Playwright reports & UI audit screenshots
+frontend/playwright-report/
+frontend/test-results/
+frontend/ui-audit-screenshots/
+
+# Temporary test outputs
+result.json

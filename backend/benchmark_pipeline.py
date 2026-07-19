@@ -79,33 +79,7 @@ def _rel(p: Path) -> str:
         return str(p)
 
 
-def stage_classify():
-    sys.path.insert(0, str(BACKEND))
-    from image_processing import preprocess_image
-    from document_classifier import DocumentClassifier
 
-    weights = os.environ.get("CLASSIFIER_WEIGHTS", "")
-    classifier = DocumentClassifier(weights_path=weights if weights else None)
-    mode = "mobilenet_gpu" if (classifier.model is not None and weights) else "heuristic_cpu"
-    print(f"[classify] mode={mode}")
-
-    predictions: dict[str, dict] = {}
-    for dataset in DATASETS:
-        for p in collect_images(dataset):
-            t0 = time.time()
-            try:
-                img = preprocess_image(str(p))
-                doc_type = classifier.predict(img)
-                dt = round(time.time() - t0, 4)
-                predictions[_rel(p)] = {"doc_type": doc_type, "classify_seconds": dt, "status": "ok"}
-            except Exception as e:
-                dt = round(time.time() - t0, 4)
-                predictions[_rel(p)] = {"doc_type": "error", "classify_seconds": dt,
-                                        "status": "error", "error": str(e)}
-            print(f"  {_rel(p)} -> {predictions[_rel(p)]['doc_type']} ({predictions[_rel(p)]['classify_seconds']}s)")
-
-    PRED_FILE.write_text(json.dumps({"mode": mode, "predictions": predictions}, indent=2), encoding="utf-8")
-    print(f"[classify] wrote {PRED_FILE}")
 
 
 def stage_ocr_printed():
@@ -270,7 +244,6 @@ def run_all():
     py = sys.executable
     script = str(__file__)
     print(f"[run-all] using python: {py}")
-    subprocess.run([py, script, "classify"], check=True)
     subprocess.run([py, script, "ocr-printed"], check=True)
     subprocess.run([py, script, "ocr-handwritten"], check=True)
     subprocess.run([py, script, "report"], check=True)
@@ -278,11 +251,9 @@ def run_all():
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("mode", choices=["classify", "ocr-printed", "ocr-handwritten", "report", "run-all"])
+    ap.add_argument("mode", choices=["ocr-printed", "ocr-handwritten", "report", "run-all"])
     args = ap.parse_args()
-    if args.mode == "classify":
-        stage_classify()
-    elif args.mode == "ocr-printed":
+    if args.mode == "ocr-printed":
         stage_ocr_printed()
     elif args.mode == "ocr-handwritten":
         stage_ocr_handwritten()

@@ -1,7 +1,7 @@
 """backend/main.py — MedVault Hepatology OCR pipeline FastAPI entry point.
 
 Wires the application:
-  * ``CORSMiddleware`` so the Vite dev server (http://localhost:5173) and the
+  * ``CORSMiddleware`` so the Vite dev server (http://localhost:3001) and the
     production SPA bundle can call the API.
   * All seven routers from ``backend/routes/`` via ``app.include_router``.
   * A ``lifespan`` hook that initialises the SQLite schema (``init_db``),
@@ -11,7 +11,7 @@ Wires the application:
     preloading so the GPU status panel flips to "loaded" without blocking
     startup.
 
-Run with:  uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
+Run with:  uvicorn backend.main:app --host 0.0.0.0 --port 3000 --reload
 """
 from __future__ import annotations
 
@@ -96,8 +96,8 @@ app = FastAPI(title="MedVault Hepatology OCR Pipeline", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
+        "http://localhost:3001",
+        "http://127.0.0.1:3001",
         "http://localhost:4173",
         "http://127.0.0.1:4173",
     ],
@@ -122,6 +122,16 @@ app.include_router(reports_router)
 app.include_router(pipeline_router)
 app.include_router(evaluation_router)
 app.include_router(admin_router)
+
+
+@app.get("/")
+async def root() -> dict[str, str]:
+    return {
+        "name": "MedVault API",
+        "version": "1.0",
+        "docs": "/docs",
+        "status": "ok"
+    }
 
 
 @app.get("/health")

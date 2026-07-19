@@ -33,7 +33,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-import tools
+import sdlc_tools as tools  # renamed from tools.py to avoid shadowing PaddleOCR's `tools` package
 from agent_loader import load_agents_dir
 from nim_client import get_client, run_agent_turn
 

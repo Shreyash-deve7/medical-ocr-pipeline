@@ -47,12 +47,19 @@ async def run_pipeline_endpoint(
     evaluate: bool = Form(False, description="Merge Agent 7 evaluation metrics"),
     summary: bool = Form(False, description="Attach a doctor-facing summary"),
     use_graph: bool = Form(True, description="Orchestrate via the PipelineGraph DAG"),
+    report_id: str = Form("", description="Optional: reuse stored OCR text for this report id instead of re-running OCR"),
 ):
     """
     Run the full pipeline over a multipart image upload.
 
     :returns: a ``PipelineResult`` JSON (preprocessing + classification +
         extracted LabReport + validation + diagnosis; summary/evaluation optional).
+
+    When ``report_id`` is provided and the background upload task already
+    produced OCR text for that report (``reports.ocr_text`` non-empty,
+    ``status='done'``), the pipeline reuses the stored text and skips the
+    expensive OCR step — making the doctor's "Run Pipeline" near-instant
+    instead of re-running OCR on a cold GPU.
     """
     if file is None:
         raise HTTPException(status_code=400, detail="No image file provided")
@@ -69,6 +76,7 @@ async def run_pipeline_endpoint(
             evaluate=evaluate,
             summary=summary,
             use_graph=use_graph,
+            report_id=report_id or None,
         )
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Pipeline failed: {e}")

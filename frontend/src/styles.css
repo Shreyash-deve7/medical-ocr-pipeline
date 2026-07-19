@@ -593,6 +593,7 @@ body {
 .tag.image { background: var(--accent-soft); color: var(--accent); }
 .tag.analyzed { background: var(--success-soft); color: var(--success); }
 .tag.pending { background: var(--warning-soft); color: var(--warning); }
+.tag.uploaded { background: var(--bg-alt); color: var(--text-secondary); }
 
 /* ── API key bar ───────────────────────────────────── */
 

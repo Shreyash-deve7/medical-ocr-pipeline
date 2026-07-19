@@ -80,10 +80,3 @@ class AutoOCRProvider:
 
 
 
-# NOTE: The 3-class DocumentClassifier (TABLE / HANDWRITTEN / PRINTED_TEXT)
-# now lives in ``backend.classifier`` (modularised from the old
-# ``document_classifier.py``). The OCR routing/provider logic used by the
-# pipeline is in ``backend.services.ocr_service``. This module retains only the
-# generic ``AutoOCRProvider`` helper above; the stale ``DocumentClassifier`` +
-# singleton glue that previously lived here has been removed to avoid two
-# divergent classifier implementations.

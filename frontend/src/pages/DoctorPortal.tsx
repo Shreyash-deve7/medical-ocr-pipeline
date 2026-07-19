@@ -72,7 +72,7 @@ export function DoctorPortal({ onBack, notify, onOpenChart }: Props) {
     setExpandedReport(reportId);
     try {
       const blob = await (await fetch(api.fileUrl(reportId))).blob();
-      const result = await api.runPipeline(blob, filename, { summary: true });
+      const result = await api.runPipeline(blob, filename, { summary: true, reportId });
       setPipelineResult(result);
       setReports(prev =>
         prev.map(r => (r.id === reportId ? { ...r, analyzed: 1 } : r))
